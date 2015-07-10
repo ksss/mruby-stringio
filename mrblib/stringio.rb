@@ -1,6 +1,10 @@
 class IOError < StandardError
 end
 
+class IO
+  SEEK_SET = 0
+end
+
 class StringIO
   READABLE  = 0x0001
   WRITABLE  = 0x0002
@@ -53,6 +57,25 @@ class StringIO
     raise IOError, "closed stream" unless !closed?
     @flags &= ~READWRITE
     nil
+  end
+
+  def seek(amount, whence=IO::SEEK_SET)
+    raise IOError, "closed stream" unless !closed?
+    offset = amount
+    case whence
+    when 0
+    when 1
+      offset += @pos
+    when 2
+      offset += @string.length
+    else
+      raise Errno::EINVAL, "invalid whence"
+    end
+    if offset < 0
+      raise Errno::EINVAL
+    end
+    @pos = offset
+    0
   end
 
   def write(str)

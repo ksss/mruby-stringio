@@ -126,3 +126,18 @@ assert 'overwrite' do
   end
   assert_equal("hacker\nother ruby\n", stringio.string)
 end
+
+assert 'StringIO#seek' do
+  begin
+    f = StringIO.new("1234")
+    assert_raise(Errno::EINVAL) { f.seek(-1) }
+    f.seek(-1, 2)
+    assert_equal("4", f.getc)
+    assert_raise(Errno::EINVAL) { f.seek(1, 3) }
+    f.close
+    assert_raise(IOError) { f.seek(0) }
+  ensure
+    f.close unless f.closed?
+  end
+end
+
