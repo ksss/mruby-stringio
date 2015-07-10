@@ -89,6 +89,14 @@ assert 'StringIO#read' do
   assert_equal "test", s
 end
 
+assert 'StringIO#getc' do
+  strio = StringIO.new("abc")
+  assert_equal "a", strio.getc
+  assert_equal "b", strio.getc
+  assert_equal "c", strio.getc
+  assert_equal nil, strio.getc
+end
+
 assert 'StringIO#gets' do
   assert_equal(nil, StringIO.new("").gets)
   assert_equal("\n", StringIO.new("\n").gets)
