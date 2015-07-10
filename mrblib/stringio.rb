@@ -71,6 +71,14 @@ class StringIO
     str.length
   end
 
+  def print(*strings)
+    strings.each do |string|
+      str = string.to_s
+      write str
+    end
+    nil
+  end
+
   def puts(*strings)
     strings.each do |string|
       str = string.to_s

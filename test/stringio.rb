@@ -64,6 +64,12 @@ assert 'StringIO#write' do
   end
 end
 
+assert 'StringiO#print' do
+  strio = StringIO.new("test")
+  assert_nil strio.print("b")
+  assert_equal "best", strio.string
+end
+
 assert 'StringIO#read' do
   strio = StringIO.new("test")
   assert_equal "test", strio.read
