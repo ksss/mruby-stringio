@@ -82,10 +82,6 @@ class StringIO
     ret
   end
 
-  # call-seq:
-  #   strio.gets(sep=$/)     -> string or nil
-  #   strio.gets(limit)      -> string or nil
-  #   strio.gets(sep, limit) -> string or nil
   def gets(*args)
     raise IOError, "not opened for reading" unless readable?
 
