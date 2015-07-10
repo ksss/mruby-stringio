@@ -9,6 +9,7 @@ class StringIO
   APPEND    = 0x0040
   CREATE    = 0x0080
   TRUNC     = 0x0800
+  DEFAULT_RS = "\n"
 
   class << self
     def open(string = "", mode = "r+", &block)
@@ -63,9 +64,22 @@ class StringIO
     if append?
       @pos = @string.length
     end
-
-    @string.replace(@string[0, @pos] + str)
+    head = @string[0, @pos]
+    foot = @string[(@pos + str.length)..-1]
+    @string.replace(head + str + (foot || ""))
+    @pos += str.length
     str.length
+  end
+
+  def puts(*strings)
+    strings.each do |string|
+      str = string.to_s
+      write str
+      if str.length == 0 || str[str.length-1] != DEFAULT_RS
+        write DEFAULT_RS
+      end
+    end
+    nil
   end
 
   def read(length = nil, buf = "")

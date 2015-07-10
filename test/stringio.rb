@@ -102,3 +102,13 @@ assert 'StringIO#gets' do
   assert_raise(TypeError){StringIO.new("").gets(1, 1)}
   assert_nothing_raised {StringIO.new("").gets(nil, nil)}
 end
+
+assert 'test_overwrite' do
+  stringio = StringIO.new
+  responses = ['', 'just another ruby', 'hacker']
+  responses.each do |resp|
+    stringio.puts(resp)
+    stringio.rewind
+  end
+  assert_equal("hacker\nother ruby\n", stringio.string)
+end
