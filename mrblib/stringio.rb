@@ -87,6 +87,9 @@ class StringIO
     if append?
       @pos = @string.length
     end
+    if @string.length < @pos
+      @string += ("\0" * (@pos - @string.length))
+    end
     head = @string[0, @pos]
     foot = @string[(@pos + str.length)..-1]
     @string.replace(head + str + (foot || ""))

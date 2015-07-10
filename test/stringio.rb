@@ -141,3 +141,10 @@ assert 'StringIO#seek' do
   end
 end
 
+assert 'seek_beyond_eof' do
+  io = StringIO.new
+  n = 10
+  io.seek(n)
+  io.print "last"
+  assert_equal("\0" * n + "last", io.string)
+end
