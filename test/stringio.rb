@@ -142,6 +142,19 @@ assert 'StringIO#gets' do
   assert_equal nil, io.gets(">>")
 end
 
+assert 'gets pos and lineno' do
+  io = StringIO.new("this is\nan example\nfor StringIO#gets")
+  io.gets
+  assert_equal 8, io.pos
+  assert_equal 1, io.lineno
+  io.gets
+  assert_equal 19, io.pos
+  assert_equal 2, io.lineno
+  io.gets
+  assert_equal 36, io.pos
+  assert_equal 3, io.lineno
+end
+
 assert 'gets1' do
   assert_equal(nil, StringIO.new("").gets)
   assert_equal("\n", StringIO.new("\n").gets)
