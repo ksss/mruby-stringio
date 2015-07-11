@@ -188,20 +188,20 @@ class StringIO
     raise IOError, "not opened for reading" unless readable?
 
     str = nil
-    limit = nil
+    limit = 0
 
     case args.length
     when 0
       str = $/ || "\n"
     when 1
       str = args[0]
-      if !str.nil? && str.kind_of?(String)
+      if !str.nil? && !str.kind_of?(String)
         if str.respond_to?(:to_str)
           str = str.to_str
         else
-          str = $/ || "\n"
           limit = str
           return "" if limit == 0
+          str = $/ || "\n"
         end
       end
     when 2
@@ -222,6 +222,10 @@ class StringIO
 
     e = @string.length
 
+    if 0 < limit && limit < e
+      str = @string[@pos, limit]
+    end
+
     str = if str.nil?
       @string[@pos, @string.length]
     elsif str.length == 0
@@ -240,17 +244,17 @@ class StringIO
       end
       @string[save_index, e - save_index]
     elsif str.length == 1
-      if p = @string.index(str)
+      if p = @string.index(str, @pos)
         e = p + 1
       end
-      @string[@pos, e]
+      @string[@pos, e - @pos]
     else
       if str.length < @string.length
-        if (p = @string.index(str)) == 0
+        if p = @string.index(str, @pos)
           e = p + str.length
         end
       end
-      @string[@pos, e]
+      @string[@pos, e - @pos]
     end
 
     @pos = e

@@ -122,6 +122,22 @@ assert 'StringIO#getc' do
 end
 
 assert 'StringIO#gets' do
+  io = StringIO.new("this>is>an>example")
+  assert_equal "this>", io.gets(">")
+  assert_equal "is>", io.gets(">")
+  assert_equal "an>", io.gets(">")
+  assert_equal "example", io.gets(">")
+  assert_equal nil, io.gets(">")
+
+  io = StringIO.new("this>>is>>an>>example")
+  assert_equal "this>>", io.gets(">>")
+  assert_equal "is>>", io.gets(">>")
+  assert_equal "an>>", io.gets(">>")
+  assert_equal "example", io.gets(">>")
+  assert_equal nil, io.gets(">>")
+end
+
+assert 'gets1' do
   assert_equal(nil, StringIO.new("").gets)
   assert_equal("\n", StringIO.new("\n").gets)
   assert_equal("a\n", StringIO.new("a\n").gets)
@@ -156,6 +172,26 @@ assert 'StringIO#seek' do
     assert_raise(IOError) { f.seek(0) }
   ensure
     f.close unless f.closed?
+  end
+end
+
+assert 'gets2' do
+  f = StringIO.new("foo\nbar\nbaz\n")
+  assert_equal("fo", f.gets(2))
+  o = Object.new
+  def o.to_str; "z"; end
+  assert_equal("o\nbar\nbaz", f.gets(o))
+
+  f = StringIO.new("foo\nbar\nbaz\n")
+  assert_equal("foo\nbar\nbaz", f.gets("az"))
+  f = StringIO.new("a" * 10 + "zz!")
+  assert_equal("a" * 10 + "zz", f.gets("zz"))
+  f = StringIO.new("a" * 10 + "zz!")
+  assert_equal("a" * 10 + "zz!", f.gets("zzz"))
+
+  ["a", "\u3042"].each do |s|
+    assert_equal(s, StringIO.new(s).gets(1))
+    assert_equal(s, StringIO.new(s).gets(nil, 1))
   end
 end
 
