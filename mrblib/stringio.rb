@@ -8,6 +8,8 @@ class IO
 end
 
 class StringIO
+  include Enumerable
+
   READABLE  = 0x0001
   WRITABLE  = 0x0002
   READWRITE = READABLE | WRITABLE
