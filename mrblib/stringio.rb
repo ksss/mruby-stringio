@@ -275,6 +275,10 @@ class StringIO
     end
   end
 
+  def fileno
+    nil
+  end
+
   private
 
   def modestr_fmode(mode)
