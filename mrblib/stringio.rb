@@ -1,5 +1,7 @@
 class IOError < StandardError
 end
+class EOFError < IOError
+end
 
 class IO
   SEEK_SET = 0
@@ -160,7 +162,14 @@ class StringIO
     end
     @pos += buf.length
     buf
+  end
 
+  def sysread(*args)
+    str = read(*args)
+    if str == nil
+      raise EOFError, "end of file reached"
+    end
+    str
   end
 
   def getc

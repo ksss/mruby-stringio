@@ -106,6 +106,13 @@ assert 'StringIO#read' do
   assert_equal "test", s
 end
 
+assert 'StringIO#sysread' do
+  strio = StringIO.new("test")
+  assert_equal "tes", strio.sysread(3)
+  assert_equal "t", strio.sysread(10)
+  assert_raise(EOFError){ strio.sysread(10) }
+end
+
 assert 'StringIO#getc' do
   strio = StringIO.new("abc")
   assert_equal "a", strio.getc
