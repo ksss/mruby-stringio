@@ -47,6 +47,11 @@ assert 'StringIO#size' do
   assert_equal(4, strio.size)
 end
 
+assert 'StringIO#each' do
+  f = StringIO.new("foo\nbar\nbaz\n")
+  assert_equal(["foo\n", "bar\n", "baz\n"], f.each.to_a)
+end
+
 assert 'StringIO#write' do
   begin
     s = ""
@@ -189,10 +194,8 @@ assert 'gets2' do
   f = StringIO.new("a" * 10 + "zz!")
   assert_equal("a" * 10 + "zz!", f.gets("zzz"))
 
-  ["a", "\u3042"].each do |s|
-    assert_equal(s, StringIO.new(s).gets(1))
-    assert_equal(s, StringIO.new(s).gets(nil, 1))
-  end
+  assert_equal("a", StringIO.new("a").gets(1))
+  assert_equal("a", StringIO.new("a").gets(nil, 1))
 end
 
 assert 'seek_beyond_eof' do

@@ -207,8 +207,12 @@ class StringIO
     when 2
       str = args[0]
       lim = args[1]
-      raise TypeError if !str.nil? && str.kind_of?(String)
-      raise TypeError if !lim.nil? && lim.kind_of?(Numeric)
+      if !str.nil? && !str.kind_of?(String)
+        raise TypeError, "no implicit conversion of #{str.class} into String"
+      end
+      if !lim.nil? && !lim.kind_of?(Integer)
+        raise TypeError, "no implicit conversion of #{str.class} into Integer"
+      end
       limit = if lim.nil?
         0
       else
@@ -260,6 +264,13 @@ class StringIO
     @pos = e
     @lineno += 1
     str
+  end
+
+  def each(*args, &block)
+    return to_enum :each unless block
+    while line = gets(*args)
+      block.call(line)
+    end
   end
 
   private
