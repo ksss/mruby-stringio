@@ -128,16 +128,39 @@ class StringIO
 
   def read(length = nil, buf = "")
     raise IOError, "not opened for reading" unless readable?
+    if length != nil
+      len = length.to_i
+      if len < 0
+        raise ArgumentError, "negative length #{len} given"
+      end
+      if 0 < len && @string.length <= @pos
+        buf.replace ""
+        return nil
+      end
+    else
+      len = @string.length
+      if len <= @pos
+        if buf.nil?
+          buf = ""
+        else
+          buf.replace ""
+        end
+        return buf
+      else
+        len -= @pos
+      end
+    end
 
-    length = @string.length unless length
-    buf = "" unless buf
+    if buf.nil?
+      buf = @string[@pos, len]
+    else
+      rest = @string.length - @pos
+      len = rest if rest < len
+      buf.replace @string[@pos, len]
+    end
+    @pos += buf.length
+    buf
 
-    raise ArgumentError unless 0 <= length
-
-    ret = @string[@pos, length]
-    buf.replace ret
-    @pos += length
-    ret
   end
 
   def getc

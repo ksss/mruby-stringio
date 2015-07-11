@@ -87,6 +87,12 @@ assert 'StringIO#read' do
   strio.rewind
   assert_raise(ArgumentError) { strio.read(-1) }
   assert_raise(ArgumentError) { strio.read(1, 2, 3) }
+  assert_equal "test", strio.read
+
+  strio.rewind
+  assert_equal "test", strio.read(strio.size)
+
+  strio.rewind
   assert_equal "test", strio.read(nil, nil)
 
   strio.rewind
