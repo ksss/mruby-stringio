@@ -104,6 +104,8 @@ class StringIO
     @pos += str.length
     str.length
   end
+  alias syswrite write
+  alias write_nonblock write
 
   def print(*strings)
     strings.each do |string|
