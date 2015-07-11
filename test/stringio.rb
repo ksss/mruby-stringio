@@ -42,6 +42,11 @@ assert 'StringIO#rewind' do
   assert_equal 0, strio.pos
 end
 
+assert 'StringIO#size' do
+  strio = StringIO.new("1234")
+  assert_equal(4, strio.size)
+end
+
 assert 'StringIO#write' do
   begin
     s = ""

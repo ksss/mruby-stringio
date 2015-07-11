@@ -59,6 +59,14 @@ class StringIO
     nil
   end
 
+  def size
+    if @string.nil?
+      raise IOError, "not opened"
+    end
+    @string.length
+  end
+  alias length size
+
   def seek(amount, whence=IO::SEEK_SET)
     raise IOError, "closed stream" unless !closed?
     offset = amount
