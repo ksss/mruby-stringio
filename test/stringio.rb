@@ -218,3 +218,15 @@ assert 'seek_beyond_eof' do
   io.print "last"
   assert_equal("\0" * n + "last", io.string)
 end
+
+assert 'eof?' do
+  io = StringIO.new("test")
+  assert_false io.eof?
+  assert_false io.eof
+  io.seek(3)
+  assert_false io.eof?
+  assert_false io.eof
+  io.seek(4)
+  assert_true io.eof?
+  assert_true io.eof
+end
