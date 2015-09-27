@@ -323,4 +323,9 @@ class StringIO
   def append?
     (@flags & APPEND) == APPEND
   end
+
+  def eof?
+    @pos >= @string.length
+  end
+  alias_method :eof, :eof?
 end
