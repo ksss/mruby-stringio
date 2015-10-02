@@ -32,9 +32,13 @@ class StringIO
 
   attr_accessor :string, :pos, :lineno
 
-  def initialize(string = "", mode = "r+")
+  RPULS = "r+"
+
+  def initialize(string = "", mode = RPULS)
     flags = 0
-    if mode.kind_of?(String)
+    if mode == RPULS
+      flags |= READWRITE
+    elsif mode.kind_of?(String)
       flags = modestr_fmode(mode)
       if (flags & TRUNC) == TRUNC
         string.replace ""
