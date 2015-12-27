@@ -2,6 +2,8 @@ assert 'StringIO#initialize' do
   assert_kind_of StringIO, StringIO.new
   assert_kind_of StringIO, StringIO.new("str")
   assert_kind_of StringIO, StringIO.new("str", "r+")
+  assert_raise(ArgumentError) { StringIO.new("", "n") }
+  assert_raise(ArgumentError) { StringIO.new("", "r+x") }
 end
 
 assert 'StringIO#string' do
