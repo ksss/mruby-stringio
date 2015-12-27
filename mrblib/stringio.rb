@@ -32,25 +32,6 @@ class StringIO
 
   attr_accessor :string, :pos, :lineno
 
-  RPULS = "r+"
-
-  def initialize(string = "", mode = RPULS)
-    flags = 0
-    if mode == RPULS
-      flags |= READWRITE
-    elsif mode.kind_of?(String)
-      flags = modestr_fmode(mode)
-      if (flags & TRUNC) == TRUNC
-        string.replace ""
-      end
-    end
-
-    @string = string
-    @pos = 0
-    @lineno = 0
-    @flags = flags
-  end
-
   def rewind
     @pos = 0
     @lineno = 0
@@ -284,37 +265,6 @@ class StringIO
   end
 
   private
-
-  def modestr_fmode(mode)
-    flags = 0
-    index = 0
-
-    case mode[index]
-    when 'r'
-      flags |= READABLE
-    when 'w'
-      flags |= WRITABLE | CREATE | TRUNC
-    when 'a'
-      flags |= WRITABLE | APPEND | CREATE
-    else
-      raise ArgumentError, "illegal access mode #{mode}"
-    end
-    index += 1
-
-    while mode[index]
-      case mode[index]
-      when 'b'
-        flags |= BINMODE
-      when '+'
-        flags |= READWRITE
-      else
-        raise ArgumentError, "illegal access mode #{mode}"
-      end
-      index += 1
-    end
-
-    flags
-  end
 
   def writable?
     (@flags & WRITABLE) == WRITABLE
