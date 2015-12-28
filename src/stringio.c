@@ -12,6 +12,15 @@
 #define stringio_iv_get(name) mrb_iv_get(mrb, self, mrb_intern_lit(mrb, name))
 #define E_IOERROR (mrb_class_get(mrb, "IOError"))
 
+static void
+check_modifiable(mrb_state *mrb, mrb_value self)
+{
+  mrb_value string = stringio_iv_get("@string");
+  if (RSTR_FROZEN_P(mrb_str_ptr(string))) {
+    mrb_raise(mrb, E_IOERROR, "not modifiable string");
+  }
+}
+
 static mrb_int
 modestr_fmode(mrb_state *mrb, const char *modestr)
 {
@@ -59,6 +68,23 @@ strio_substr(mrb_state *mrb, mrb_value self, long pos, long len)
   if (len == 0) return mrb_str_new(mrb, 0, 0);
   return mrb_str_new(mrb, RSTRING_PTR(str)+pos, len);
 }
+
+static void
+strio_extend(mrb_state *mrb, mrb_value self, long pos, long len)
+{
+  long olen;
+  mrb_value string = stringio_iv_get("@string");
+
+  olen = RSTRING_LEN(string);
+  if (pos + len > olen) {
+    mrb_str_resize(mrb, string, pos + len);
+    if (pos > olen)
+      memset(RSTRING_PTR(string) + olen, 0, sizeof(char) * (pos - olen));
+  } else {
+    mrb_str_modify(mrb, mrb_str_ptr(string));
+  }
+}
+
 
 static mrb_value
 stringio_read(mrb_state *mrb, mrb_value self)
@@ -146,12 +172,52 @@ stringio_initialize(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static mrb_value
+stringio_write(mrb_state *mrb, mrb_value self)
+{
+  mrb_int len, olen;
+  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
+  mrb_value str = mrb_nil_value();
+  mrb_value string = stringio_iv_get("@string");
+
+  if ((flags & FMODE_WRITABLE) != FMODE_WRITABLE)
+    mrb_raise(mrb, E_IOERROR, "not opened for writing");
+
+  mrb_get_args(mrb, "o", &str);
+
+  if (!mrb_string_p(str))
+    str = mrb_obj_as_string(mrb, str);
+
+  len = RSTRING_LEN(str);
+  if (len == 0)
+    return mrb_fixnum_value(0);
+  check_modifiable(mrb, self);
+  olen = RSTRING_LEN(string);
+  if (flags & FMODE_APPEND) {
+    pos = olen;
+  }
+  if (pos == olen) {
+    mrb_str_append(mrb, string, str);
+  } else {
+    strio_extend(mrb, self, pos, len);
+    memmove(RSTRING_PTR(string) + pos, RSTRING_PTR(str), len);
+  }
+  pos += len;
+
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(pos));
+  return mrb_fixnum_value(len);
+}
+
 void
 mrb_mruby_stringio_gem_init(mrb_state* mrb)
 {
   struct RClass *stringio = mrb_define_class(mrb, "StringIO", mrb->object_class);
   mrb_define_method(mrb, stringio, "initialize", stringio_initialize, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "read", stringio_read, MRB_ARGS_ANY());
+  mrb_define_method(mrb, stringio, "write", stringio_write, MRB_ARGS_REQ(1));
+  mrb_define_alias(mrb, stringio, "syswrite", "write");
+  mrb_define_alias(mrb, stringio, "write_nonblock", "write");
 }
 
 void

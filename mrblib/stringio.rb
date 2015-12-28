@@ -75,27 +75,6 @@ class StringIO
     0
   end
 
-  def write(str)
-    raise IOError, "not opened for writing" unless writable?
-    str = str.to_s
-
-    return 0 if str.length == 0
-
-    if append?
-      @pos = @string.length
-    end
-    if @string.length < @pos
-      @string += ("\0" * (@pos - @string.length))
-    end
-    head = @string[0, @pos]
-    foot = @string[(@pos + str.length)..-1]
-    @string.replace(head + str + (foot || ""))
-    @pos += str.length
-    str.length
-  end
-  alias syswrite write
-  alias write_nonblock write
-
   def print(*strings)
     strings.each do |string|
       str = string.to_s
