@@ -209,16 +209,8 @@ class StringIO
 
   private
 
-  def writable?
-    (@flags & WRITABLE) == WRITABLE
-  end
-
   def readable?
     (@flags & READABLE) == READABLE
-  end
-
-  def append?
-    (@flags & APPEND) == APPEND
   end
 
   def eof?
