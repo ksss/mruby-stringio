@@ -1,3 +1,7 @@
+/*
+original is https://github.com/ruby/ruby/blob/trunk/ext/stringio/stringio.c
+*/
+
 #include <string.h>
 #include "mruby.h"
 #include "mruby/string.h"
