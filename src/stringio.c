@@ -10,6 +10,7 @@
 #define FMODE_APPEND                0x0040
 
 #define stringio_iv_get(name) mrb_iv_get(mrb, self, mrb_intern_lit(mrb, name))
+#define E_IOERROR (mrb_class_get(mrb, "IOError"))
 
 static mrb_int
 modestr_fmode(mrb_state *mrb, const char *modestr)
@@ -71,7 +72,7 @@ stringio_read(mrb_state *mrb, mrb_value self)
   mrb_value flags = stringio_iv_get("@flags");
 
   if ((mrb_fixnum(flags) & FMODE_READABLE) != FMODE_READABLE)
-    mrb_raise(mrb, mrb_class_get(mrb, "IOError"), "not opened for reading");
+    mrb_raise(mrb, E_IOERROR, "not opened for reading");
 
   argc = mrb_get_args(mrb, "|oo", &rlen, &rstr);
   switch (argc) {
