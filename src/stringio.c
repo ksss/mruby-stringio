@@ -9,6 +9,8 @@
 #define FMODE_BINMODE               0x0004
 #define FMODE_APPEND                0x0040
 
+#define stringio_iv_get(name) mrb_iv_get(mrb, self, mrb_intern_lit(mrb, name))
+
 static mrb_int
 modestr_fmode(mrb_state *mrb, const char *modestr)
 {
@@ -46,6 +48,79 @@ error:
 }
 
 static mrb_value
+strio_substr(mrb_state *mrb, mrb_value self, long pos, long len)
+{
+  mrb_value str = stringio_iv_get("@string");
+  long rlen = RSTRING_LEN(str) - pos;
+
+  if (len > rlen) len = rlen;
+  if (len < 0) len = 0;
+  if (len == 0) return mrb_str_new(mrb, 0, 0);
+  return mrb_str_new(mrb, RSTRING_PTR(str)+pos, len);
+}
+
+static mrb_value
+stringio_read(mrb_state *mrb, mrb_value self)
+{
+  mrb_int argc;
+  mrb_int clen;
+  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
+  mrb_value rlen = mrb_nil_value();
+  mrb_value rstr = mrb_nil_value();
+  mrb_value string = stringio_iv_get("@string");
+  mrb_value flags = stringio_iv_get("@flags");
+
+  if ((mrb_fixnum(flags) & FMODE_READABLE) != FMODE_READABLE)
+    mrb_raise(mrb, mrb_class_get(mrb, "IOError"), "not opened for reading");
+
+  argc = mrb_get_args(mrb, "|oo", &rlen, &rstr);
+  switch (argc) {
+    case 2:
+      if (!mrb_nil_p(rstr)) {
+        mrb_str_modify(mrb, mrb_str_ptr(rstr));
+      }
+      /* fall through */
+    case 1:
+      if (!mrb_nil_p(rlen)) {
+        clen = mrb_fixnum(rlen);
+        if (clen < 0) {
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %S given", rlen);
+        }
+        if (clen > 0 && pos >= RSTRING_LEN(string)) {
+          if (!mrb_nil_p(rstr)) mrb_str_resize(mrb, rstr, 0);
+          return mrb_nil_value();
+        }
+        break;
+      }
+      /* fall through */
+    case 0:
+      clen = RSTRING_LEN(string);
+      if (clen <= pos) {
+        if (mrb_nil_p(rstr)) {
+          rstr = mrb_str_new(mrb, 0, 0);
+        } else {
+          mrb_str_resize(mrb, rstr, 0);
+        }
+        return rstr;
+      } else {
+        clen -= pos;
+      }
+      break;
+  }
+  if (mrb_nil_p(rstr)) {
+    rstr = strio_substr(mrb, self, pos, clen);
+  } else {
+    long rest = RSTRING_LEN(string) - pos;
+    if (clen > rest) clen = rest;
+    mrb_str_resize(mrb, rstr, clen);
+    memcpy(RSTRING_PTR(rstr), RSTRING_PTR(string) + pos, sizeof(char) * clen);
+  }
+  pos += RSTRING_LEN(rstr);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(pos));
+  return rstr;
+}
+
+static mrb_value
 stringio_initialize(mrb_state *mrb, mrb_value self)
 {
   mrb_value string = mrb_nil_value();
@@ -75,6 +150,7 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
 {
   struct RClass *stringio = mrb_define_class(mrb, "StringIO", mrb->object_class);
   mrb_define_method(mrb, stringio, "initialize", stringio_initialize, MRB_ARGS_ANY());
+  mrb_define_method(mrb, stringio, "read", stringio_read, MRB_ARGS_ANY());
 }
 
 void
