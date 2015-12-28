@@ -133,7 +133,7 @@ stringio_initialize(mrb_state *mrb, mrb_value self)
     string = mrb_str_new(mrb, 0, 0);
   }
   if (mrb_nil_p(mode)) {
-    flags = mrb_fixnum_value(FMODE_READABLE | FMODE_READWRITE);
+    flags = mrb_fixnum_value(FMODE_READWRITE);
   } else {
     flags = mrb_fixnum_value(modestr_fmode(mrb, RSTRING_PTR(mode)));
   }
