@@ -3,9 +3,11 @@ original is https://github.com/ruby/ruby/blob/trunk/ext/stringio/stringio.c
 */
 
 #include <string.h>
+#include <errno.h>
 #include "mruby.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
+#include "mruby/error.h"
 
 #define FMODE_READABLE              0x0001
 #define FMODE_WRITABLE              0x0002
@@ -156,22 +158,28 @@ stringio_initialize(mrb_state *mrb, mrb_value self)
 {
   mrb_value string = mrb_nil_value();
   mrb_value mode = mrb_nil_value();
-  mrb_value flags;
+  mrb_int flags;
+  mrb_int argc;
 
-  mrb_get_args(mrb, "|SS", &string, &mode);
+  argc = mrb_get_args(mrb, "|SS", &string, &mode);
 
   if (mrb_nil_p(string)) {
     string = mrb_str_new(mrb, 0, 0);
   }
   if (mrb_nil_p(mode)) {
-    flags = mrb_fixnum_value(FMODE_READWRITE);
+    flags = RSTR_FROZEN_P(mrb_str_ptr(string)) ? FMODE_READABLE : FMODE_READWRITE;
   } else {
-    flags = mrb_fixnum_value(modestr_fmode(mrb, RSTRING_PTR(mode)));
+    flags = modestr_fmode(mrb, RSTRING_PTR(mode));
+  }
+
+  if (argc == 2 && (flags & FMODE_WRITABLE) && RSTR_FROZEN_P(mrb_str_ptr(string))) {
+    errno = EACCES;
+    mrb_sys_fail(mrb, 0);
   }
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@string"), string);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(0));
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@lineno"), mrb_fixnum_value(0));
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), flags);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_fixnum_value(flags));
 
   return self;
 }

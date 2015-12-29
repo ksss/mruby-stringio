@@ -7,6 +7,10 @@ assert 'StringIO#initialize' do
   assert_raise(TypeError) { StringIO.new(nil) }
   assert_raise(TypeError) { StringIO.new('', nil) }
 
+  frozen = ''.freeze
+  assert_kind_of StringIO, StringIO.new(frozen)
+  assert_raise(Errno::EACCES) { StringIO.new(frozen, 'r+') }
+
   o = Object.new
   def o.to_str
     nil
