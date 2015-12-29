@@ -5,6 +5,8 @@ assert 'StringIO#initialize' do
   assert_raise(ArgumentError) { StringIO.new("", "n") }
   assert_raise(ArgumentError) { StringIO.new("", "r+x") }
   assert_raise(TypeError) { StringIO.new(nil) }
+  assert_raise(TypeError) { StringIO.new("", nil) }
+
   o = Object.new
   def o.to_str
     nil
