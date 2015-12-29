@@ -4,6 +4,16 @@ assert 'StringIO#initialize' do
   assert_kind_of StringIO, StringIO.new("str", "r+")
   assert_raise(ArgumentError) { StringIO.new("", "n") }
   assert_raise(ArgumentError) { StringIO.new("", "r+x") }
+  assert_raise(TypeError) { StringIO.new(nil) }
+  o = Object.new
+  def o.to_str
+    nil
+  end
+  assert_raise(TypeError) { StringIO.new(o) }
+  def o.to_str
+    ""
+  end
+  assert_kind_of StringIO, StringIO.new(o)
 end
 
 assert 'StringIO#string' do
