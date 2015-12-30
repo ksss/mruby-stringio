@@ -27,6 +27,16 @@ check_modifiable(mrb_state *mrb, mrb_value self)
   }
 }
 
+static void
+mrb_syserr_fail(mrb_state *mrb, mrb_int no, const char *mesg) {
+  struct RClass *sce = mrb_class_get(mrb, "SystemCallError");
+  if (mesg) {
+    mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
+  } else {
+    mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 1, mrb_fixnum_value(no));
+  }
+}
+
 static mrb_int
 modestr_fmode(mrb_state *mrb, const char *modestr)
 {
@@ -90,7 +100,6 @@ strio_extend(mrb_state *mrb, mrb_value self, long pos, long len)
     mrb_str_modify(mrb, mrb_str_ptr(string));
   }
 }
-
 
 static mrb_value
 stringio_read(mrb_state *mrb, mrb_value self)
@@ -173,7 +182,7 @@ stringio_initialize(mrb_state *mrb, mrb_value self)
   }
 
   if (argc == 2 && (flags & FMODE_WRITABLE) && RSTR_FROZEN_P(mrb_str_ptr(string))) {
-    mrb_funcall(mrb, mrb_obj_value(mrb_class_get(mrb, "SystemCallError")), "_sys_fail", 1, mrb_fixnum_value(EACCES));
+    mrb_syserr_fail(mrb, EACCES, 0);
   }
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@string"), string);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(0));
