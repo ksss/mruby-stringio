@@ -173,8 +173,7 @@ stringio_initialize(mrb_state *mrb, mrb_value self)
   }
 
   if (argc == 2 && (flags & FMODE_WRITABLE) && RSTR_FROZEN_P(mrb_str_ptr(string))) {
-    errno = EACCES;
-    mrb_sys_fail(mrb, 0);
+    mrb_funcall(mrb, mrb_obj_value(mrb_class_get(mrb, "SystemCallError")), "_sys_fail", 1, mrb_fixnum_value(EACCES));
   }
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@string"), string);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(0));
