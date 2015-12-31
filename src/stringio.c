@@ -37,6 +37,39 @@ mrb_syserr_fail(mrb_state *mrb, mrb_int no, const char *mesg) {
   }
 }
 
+/* Boyer-Moore search: copied from https://github.com/ruby/ruby/ext/stringio/stringio.c */
+static void
+bm_init_skip(long *skip, const char *pat, long m)
+{
+  int c;
+
+  for (c = 0; c < (1 << CHAR_BIT); c++) {
+    skip[c] = m;
+  }
+  while (--m) {
+    skip[(unsigned char)*pat++] = m;
+  }
+}
+
+static long
+bm_search(const char *little, long llen, const char *big, long blen, const long *skip)
+{
+  long i, j, k;
+
+  i = llen - 1;
+  while (i < blen) {
+    k = i;
+    j = llen - 1;
+    while (j >= 0 && big[k] == little[j]) {
+      k--;
+      j--;
+    }
+    if (j < 0) return k + 1;
+    i += skip[(unsigned char)big[i]];
+  }
+  return -1;
+}
+
 static mrb_int
 modestr_fmode(mrb_state *mrb, const char *modestr)
 {
@@ -229,6 +262,111 @@ stringio_write(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(len);
 }
 
+static mrb_value
+stringio_gets(mrb_state *mrb, mrb_value self)
+{
+  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
+  mrb_int lineno = mrb_fixnum(stringio_iv_get("@lineno"));
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
+  mrb_value string = stringio_iv_get("@string");
+  mrb_int argc;
+  mrb_value *argv;
+  mrb_value mrb_rs = mrb_str_new_lit(mrb, "\n");
+  mrb_value str = mrb_nil_value();
+  mrb_value lim = mrb_nil_value();
+  const char *s, *e, *p;
+  long n, limit = 0;
+
+  if ((flags & FMODE_READABLE) != FMODE_READABLE)
+    mrb_raise(mrb, E_IOERROR, "not opened for reading");
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  switch (argc) {
+    case 0:
+      str = mrb_rs;
+      break;
+    case 1:
+      str = argv[0];
+      if (!mrb_nil_p(str) && !mrb_string_p(str)) {
+        mrb_value tmp = mrb_check_string_type(mrb, str);
+        if (mrb_nil_p(tmp)) {
+          limit = mrb_fixnum(str);
+          if (limit == 0) return mrb_str_new(mrb, 0, 0);
+          str = mrb_rs;
+        } else {
+          str = tmp;
+        }
+      }
+      break;
+    case 2:
+      str = argv[0];
+      lim = argv[1];
+      if (!mrb_nil_p(str)) str = mrb_string_type(mrb, str);
+      if (!mrb_nil_p(lim)) limit = mrb_fixnum(lim);
+      break;
+  }
+
+  if (pos >= (n = RSTRING_LEN(string))) {
+    return mrb_nil_value();
+  }
+  s = RSTRING_PTR(string);
+  e = s + RSTRING_LEN(string);
+  s += pos;
+  if (limit > 0 && s + limit < e) {
+    e = s + limit;
+  }
+  if (mrb_nil_p(str)) {
+    str = strio_substr(mrb, self, pos, e - s);
+  }
+  else if ((n = RSTRING_LEN(str)) == 0) {
+    p = s;
+    while (*p == '\n') {
+      if (++p == e) {
+        return mrb_nil_value();
+      }
+    }
+    s = p;
+    while ((p = memchr(p, '\n', e - p)) && (p != e)) {
+      if (*++p == '\n') {
+        e = p + 1;
+        break;
+      }
+    }
+    str = strio_substr(mrb, self, s - RSTRING_PTR(string), e - s);
+  }
+  else if (n == 1) {
+    if ((p = memchr(s, RSTRING_PTR(str)[0], e - s)) != 0) {
+      e = p + 1;
+    }
+    str = strio_substr(mrb, self, pos, e - s);
+  }
+  else {
+    if (n < e - s) {
+      if (e - s < 1024) {
+        for (p = s; p + n <= e; ++p) {
+          if (memcmp(p, RSTRING_PTR(str), sizeof(char) * n) == 0) {
+            e = p + n;
+            break;
+          }
+        }
+      } else {
+        long skip[1 << CHAR_BIT], pos;
+        p = RSTRING_PTR(str);
+        bm_init_skip(skip, p, n);
+        if ((pos = bm_search(p, n, s, e - s, skip)) >= 0) {
+          e = s + pos + n;
+        }
+      }
+    }
+    str = strio_substr(mrb, self, pos, e - s);
+  }
+  pos = e - RSTRING_PTR(string);
+  lineno++;
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(pos));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@lineno"), mrb_fixnum_value(lineno));
+  return str;
+}
+
 void
 mrb_mruby_stringio_gem_init(mrb_state* mrb)
 {
@@ -238,6 +376,7 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, stringio, "write", stringio_write, MRB_ARGS_REQ(1));
   mrb_define_alias(mrb, stringio, "syswrite", "write");
   mrb_define_alias(mrb, stringio, "write_nonblock", "write");
+  mrb_define_method(mrb, stringio, "gets", stringio_gets, MRB_ARGS_ANY());
 }
 
 void

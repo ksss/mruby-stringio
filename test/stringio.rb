@@ -220,10 +220,10 @@ assert 'gets2' do
 
   f = StringIO.new("foo\nbar\nbaz\n")
   assert_equal("foo\nbar\nbaz", f.gets("az"))
-  f = StringIO.new("a" * 10 + "zz!")
-  assert_equal("a" * 10 + "zz", f.gets("zz"))
-  f = StringIO.new("a" * 10 + "zz!")
-  assert_equal("a" * 10 + "zz!", f.gets("zzz"))
+  f = StringIO.new("a" * 10000 + "zz!")
+  assert_equal("a" * 10000 + "zz", f.gets("zz"))
+  f = StringIO.new("a" * 10000 + "zz!")
+  assert_equal("a" * 10000 + "zz!", f.gets("zzz"))
 
   assert_equal("a", StringIO.new("a").gets(1))
   assert_equal("a", StringIO.new("a").gets(nil, 1))
