@@ -152,4 +152,8 @@ class StringIO
   def fsync
     0
   end
+
+  def flush
+    self
+  end
 end

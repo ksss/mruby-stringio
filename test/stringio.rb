@@ -265,3 +265,8 @@ end
 assert 'StringIO#fsync' do
   assert_equal 0, StringIO.new.fsync
 end
+
+assert 'StringIO#flush' do
+  s = StringIO.new
+  assert_equal s, s.flush
+end
