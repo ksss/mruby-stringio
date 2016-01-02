@@ -135,4 +135,9 @@ class StringIO
     @pos >= @string.length
   end
   alias_method :eof, :eof?
+
+  def tty?
+    false
+  end
+  alias_method :isatty, :tty?
 end

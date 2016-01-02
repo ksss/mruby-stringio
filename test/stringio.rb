@@ -248,3 +248,8 @@ assert 'eof?' do
   assert_true io.eof?
   assert_true io.eof
 end
+
+assert 'StringIO#tty?' do
+  assert_false StringIO.new.tty?
+  assert_false StringIO.new.isatty
+end
