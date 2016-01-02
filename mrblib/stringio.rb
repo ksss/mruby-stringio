@@ -140,4 +140,12 @@ class StringIO
     false
   end
   alias_method :isatty, :tty?
+
+  def sync
+    true
+  end
+
+  def sync=(val)
+    val
+  end
 end

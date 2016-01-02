@@ -253,3 +253,11 @@ assert 'StringIO#tty?' do
   assert_false StringIO.new.tty?
   assert_false StringIO.new.isatty
 end
+
+assert 'StringIO#sync' do
+  s = StringIO.new
+  assert_true s.sync
+  assert_false s.sync = false
+  assert_true s.sync
+  assert_true s.sync = true
+end
