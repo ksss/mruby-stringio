@@ -148,4 +148,8 @@ class StringIO
   def sync=(val)
     val
   end
+
+  def fsync
+    0
+  end
 end

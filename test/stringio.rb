@@ -261,3 +261,7 @@ assert 'StringIO#sync' do
   assert_true s.sync
   assert_true s.sync = true
 end
+
+assert 'StringIO#fsync' do
+  assert_equal 0, StringIO.new.fsync
+end
