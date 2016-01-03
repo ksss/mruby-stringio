@@ -3,8 +3,11 @@ end
 class EOFError < IOError
 end
 
+# argument for `StringIO#seek` whence
 class IO
   SEEK_SET = 0
+  SEEK_CUR = 1
+  SEEK_END = 2
 end
 
 class StringIO
