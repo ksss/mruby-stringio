@@ -367,6 +367,39 @@ stringio_gets(mrb_state *mrb, mrb_value self)
   return str;
 }
 
+static mrb_value
+stringio_seek(mrb_state *mrb, mrb_value self)
+{
+  mrb_value whence = mrb_nil_value();
+  mrb_int offset = 0;
+  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
+  mrb_value string = stringio_iv_get("@string");
+
+  mrb_get_args(mrb, "i|o", &offset, &whence);
+  if ((flags & FMODE_READWRITE) == 0) {
+    mrb_raise(mrb, E_IOERROR, "closed stream");
+  }
+  switch (mrb_nil_p(whence) ? 0 : mrb_fixnum(whence)) {
+    case 0:
+      break;
+    case 1:
+      offset += pos;
+      break;
+    case 2:
+      offset += RSTRING_LEN(string);
+      break;
+    default:
+      mrb_syserr_fail(mrb, EINVAL, "invalid whence");
+  }
+  if (offset < 0) {
+    mrb_syserr_fail(mrb, EINVAL, 0);
+  }
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(offset));
+  return mrb_fixnum_value(0);
+}
+
+
 void
 mrb_mruby_stringio_gem_init(mrb_state* mrb)
 {
@@ -377,6 +410,7 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_alias(mrb, stringio, "syswrite", "write");
   mrb_define_alias(mrb, stringio, "write_nonblock", "write");
   mrb_define_method(mrb, stringio, "gets", stringio_gets, MRB_ARGS_ANY());
+  mrb_define_method(mrb, stringio, "seek", stringio_seek, MRB_ARGS_NONE());
 }
 
 void
