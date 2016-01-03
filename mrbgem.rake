@@ -5,5 +5,4 @@ MRuby::Gem::Specification.new('mruby-stringio') do |spec|
 
   spec.add_dependency('mruby-print', core: 'mruby-print')
   spec.add_dependency('mruby-enumerator', core: 'mruby-enumerator')
-  spec.add_dependency('mruby-errno')
 end

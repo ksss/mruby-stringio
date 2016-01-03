@@ -9,7 +9,7 @@ assert 'StringIO#initialize' do
 
   frozen = ''.freeze
   assert_kind_of StringIO, StringIO.new(frozen)
-  assert_raise(Errno::EACCES) { StringIO.new(frozen, 'r+') }
+  assert_raise(RuntimeError) { StringIO.new(frozen, 'r+') }
 
   o = Object.new
   def o.to_str
@@ -200,10 +200,10 @@ end
 assert 'StringIO#seek' do
   begin
     f = StringIO.new("1234")
-    assert_raise(Errno::EINVAL) { f.seek(-1) }
+    assert_raise(RuntimeError) { f.seek(-1) }
     f.seek(-1, 2)
     assert_equal("4", f.getc)
-    assert_raise(Errno::EINVAL) { f.seek(1, 3) }
+    assert_raise(RuntimeError) { f.seek(1, 3) }
     f.close
     assert_raise(IOError) { f.seek(0) }
   ensure

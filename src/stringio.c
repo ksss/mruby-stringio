@@ -29,11 +29,16 @@ check_modifiable(mrb_state *mrb, mrb_value self)
 
 static void
 mrb_syserr_fail(mrb_state *mrb, mrb_int no, const char *mesg) {
-  struct RClass *sce = mrb_class_get(mrb, "SystemCallError");
-  if (mesg) {
-    mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
+  struct RClass *sce;
+  if (mrb_class_defined(mrb, "SystemCallError")) {
+    sce = mrb_class_get(mrb, "SystemCallError");
+    if (mesg) {
+      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
+    } else {
+      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 1, mrb_fixnum_value(no));
+    }
   } else {
-    mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 1, mrb_fixnum_value(no));
+    mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
   }
 }
 
