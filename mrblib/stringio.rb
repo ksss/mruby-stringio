@@ -35,6 +35,8 @@ class StringIO
 
   attr_accessor :string, :pos, :lineno
 
+  alias_method :tell, :pos
+
   def rewind
     @pos = 0
     @lineno = 0
@@ -104,6 +106,7 @@ class StringIO
       block.call(line)
     end
   end
+  alias each_line each
 
   def fileno
     nil
