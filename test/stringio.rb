@@ -129,6 +129,32 @@ assert 'StringIO#read' do
   assert_equal "test", s
 end
 
+assert 'StringIO#read_nonblock' do
+  f = StringIO.new("\u3042\u3044")
+  assert_raise(ArgumentError) { f.read_nonblock(-1) }
+  assert_raise(ArgumentError) { f.read_nonblock(1, 2, 3) }
+  assert_equal("\u3042\u3044", f.read_nonblock(100))
+  assert_raise(EOFError) { f.read_nonblock(10) }
+  f.rewind
+  assert_equal("\u3042\u3044", f.read_nonblock(f.size))
+end
+
+assert 'read_nonblock_no_exceptions' do
+  f = StringIO.new("\u3042\u3044")
+  assert_raise(ArgumentError) { f.read_nonblock(-1, exception: false) }
+  assert_raise(ArgumentError) { f.read_nonblock(1, 2, 3, exception: false) }
+  assert_raise(ArgumentError) { f.read_nonblock }
+  assert_equal("\u3042\u3044", f.read_nonblock(100, exception: false))
+  assert_raise(EOFError) { f.read_nonblock(10, typo: false) }
+  assert_equal(nil, f.read_nonblock(10, exception: false))
+  f.rewind
+  assert_equal("\u3042\u3044", f.read_nonblock(f.size))
+  f.rewind
+  # not empty buffer
+  s = '0123456789'
+  assert_equal("\u3042\u3044", f.read_nonblock(f.size, s))
+end
+
 assert 'StringIO#sysread' do
   strio = StringIO.new("test")
   assert_equal "tes", strio.sysread(3)

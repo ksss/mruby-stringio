@@ -80,6 +80,30 @@ class StringIO
     nil
   end
 
+  def read_nonblock(*args)
+    option = { exception: true }
+    if Hash === args.last
+      option = args.pop
+      if !option.key?(:exception)
+        option[:exception] = true
+      end
+    end
+
+    if args.length == 0
+      raise ArgumentError, "wrong number of arguments (given 0, expected 1..2)"
+    end
+
+    str = read(*args)
+    if str.nil?
+      if option[:exception]
+        raise EOFError, "end of file reached"
+      else
+        nil
+      end
+    end
+    str
+  end
+
   def sysread(*args)
     str = read(*args)
     if str == nil
