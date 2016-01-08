@@ -186,6 +186,9 @@ stringio_read(mrb_state *mrb, mrb_value self)
         clen -= pos;
       }
       break;
+    default:
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (given %S, expected 0..2)", mrb_fixnum_value(argc));
+      break;
   }
   if (mrb_nil_p(rstr)) {
     rstr = strio_substr(mrb, self, pos, clen);
