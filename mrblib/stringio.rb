@@ -98,12 +98,9 @@ class StringIO
   end
 
   def write_nonblock(*args)
-    if Hash === args.last
+    case args.last
+    when Hash, NilClass
       args.pop
-    end
-
-    if args.length != 1
-      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1)"
     end
     write(*args)
   end

@@ -95,7 +95,7 @@ end
 assert 'StringIO#write_nonblock' do
   assert_equal 1, StringIO.new.write_nonblock("a")
   assert_equal 1, StringIO.new.write_nonblock("a", exception: true)
-  assert_raise(ArgumentError) { StringIO.new.write_nonblock("a", nil) }
+  assert_equal 1, StringIO.new.write_nonblock("a", nil)
 end
 
 assert 'StringiO#print' do
