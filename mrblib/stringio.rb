@@ -104,6 +104,17 @@ class StringIO
     str
   end
 
+  def write_nonblock(*args)
+    if Hash === args.last
+      args.pop
+    end
+
+    if args.length != 1
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1)"
+    end
+    write(*args)
+  end
+
   def sysread(*args)
     str = read(*args)
     if str == nil

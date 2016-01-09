@@ -416,7 +416,6 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, stringio, "read", stringio_read, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "write", stringio_write, MRB_ARGS_REQ(1));
   mrb_define_alias(mrb, stringio, "syswrite", "write");
-  mrb_define_alias(mrb, stringio, "write_nonblock", "write");
   mrb_define_method(mrb, stringio, "gets", stringio_gets, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "seek", stringio_seek, MRB_ARGS_NONE());
 }
