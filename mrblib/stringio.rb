@@ -116,18 +116,6 @@ class StringIO
     str
   end
 
-  def getc
-    raise IOError, "not opened for reading" unless readable?
-
-    if @string.length <= @pos
-      return nil
-    end
-
-    c = @string[@pos]
-    @pos += 1
-    c
-  end
-
   def each(*args, &block)
     return to_enum :each unless block
     while line = gets(*args)

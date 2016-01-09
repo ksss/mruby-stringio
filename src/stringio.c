@@ -271,6 +271,27 @@ stringio_write(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+stringio_getc(mrb_state *mrb, mrb_value self)
+{
+  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
+  mrb_value string = stringio_iv_get("@string");
+  mrb_value ret;
+
+  if ((flags & FMODE_READABLE) == 0)
+    mrb_raise(mrb, E_IOERROR, "not opened for reading");
+
+  if (pos >= RSTRING_LEN(string)) {
+    return mrb_nil_value();
+  }
+
+  ret = mrb_str_new(mrb, RSTRING_PTR(string) + pos, 1);
+  pos += 1;
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(pos));
+  return ret;
+}
+
+static mrb_value
 stringio_gets(mrb_state *mrb, mrb_value self)
 {
   mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
@@ -416,6 +437,7 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, stringio, "read", stringio_read, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "write", stringio_write, MRB_ARGS_REQ(1));
   mrb_define_alias(mrb, stringio, "syswrite", "write");
+  mrb_define_method(mrb, stringio, "getc", stringio_getc, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "gets", stringio_gets, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "seek", stringio_seek, MRB_ARGS_NONE());
 
