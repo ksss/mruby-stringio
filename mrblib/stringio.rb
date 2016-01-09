@@ -128,8 +128,6 @@ class StringIO
     nil
   end
 
-  private
-
   def eof?
     @pos >= @string.length
   end
