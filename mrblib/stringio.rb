@@ -130,10 +130,6 @@ class StringIO
 
   private
 
-  def readable?
-    (@flags & READABLE) == READABLE
-  end
-
   def eof?
     @pos >= @string.length
   end
