@@ -389,12 +389,12 @@ stringio_seek(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_IOERROR, "closed stream");
   }
   switch (mrb_nil_p(whence) ? 0 : mrb_fixnum(whence)) {
-    case 0:
+    case SEEK_SET:
       break;
-    case 1:
+    case SEEK_CUR:
       offset += pos;
       break;
-    case 2:
+    case SEEK_END:
       offset += RSTRING_LEN(string);
       break;
     default:
@@ -418,6 +418,14 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_alias(mrb, stringio, "syswrite", "write");
   mrb_define_method(mrb, stringio, "gets", stringio_gets, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "seek", stringio_seek, MRB_ARGS_NONE());
+
+  struct RClass *io = mrb_define_class(mrb, "IO", mrb->object_class);
+  /* Set I/O position from the beginning */
+  mrb_define_const(mrb, io, "SEEK_SET", mrb_fixnum_value(SEEK_SET));
+  /* Set I/O position from the current position */
+  mrb_define_const(mrb, io, "SEEK_CUR", mrb_fixnum_value(SEEK_CUR));
+  /* Set I/O position from the end */
+  mrb_define_const(mrb, io, "SEEK_END", mrb_fixnum_value(SEEK_END));
 }
 
 void
