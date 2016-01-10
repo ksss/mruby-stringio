@@ -464,6 +464,13 @@ stringio_size(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(RSTRING_LEN(string));
 }
 
+static mrb_value
+stringio_eof_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_value string = stringio_iv_get("@string");
+  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
+  return (RSTRING_LEN(string) <= pos) ? mrb_true_value() : mrb_false_value();
+}
 
 void
 mrb_mruby_stringio_gem_init(mrb_state* mrb)
@@ -481,6 +488,8 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, stringio, "seek", stringio_seek, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "size", stringio_size, MRB_ARGS_NONE());
   mrb_define_alias(mrb, stringio, "length", "size");
+  mrb_define_method(mrb, stringio, "eof?", stringio_eof_p, MRB_ARGS_NONE());
+  mrb_define_alias(mrb, stringio, "eof", "eof?");
 
   struct RClass *io = mrb_define_class(mrb, "IO", mrb->object_class);
   /* Set I/O position from the beginning */

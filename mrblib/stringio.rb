@@ -101,11 +101,6 @@ class StringIO
     nil
   end
 
-  def eof?
-    @pos >= @string.length
-  end
-  alias_method :eof, :eof?
-
   def tty?
     false
   end
