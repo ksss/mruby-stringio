@@ -148,6 +148,13 @@ stringio_rewind(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+stringio_closed_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
+  return ((flags & FMODE_READWRITE) == 0) ? mrb_true_value() : mrb_false_value();
+}
+
+static mrb_value
 stringio_read(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
@@ -443,6 +450,7 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   struct RClass *stringio = mrb_define_class(mrb, "StringIO", mrb->object_class);
   mrb_define_method(mrb, stringio, "initialize", stringio_initialize, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "rewind", stringio_rewind, MRB_ARGS_NONE());
+  mrb_define_method(mrb, stringio, "closed?", stringio_closed_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "read", stringio_read, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "write", stringio_write, MRB_ARGS_REQ(1));
   mrb_define_alias(mrb, stringio, "syswrite", "write");
