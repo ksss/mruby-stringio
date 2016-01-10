@@ -30,12 +30,6 @@ class StringIO
 
   alias_method :tell, :pos
 
-  def rewind
-    @pos = 0
-    @lineno = 0
-    0
-  end
-
   def closed?
     (@flags & READWRITE) == 0
   end

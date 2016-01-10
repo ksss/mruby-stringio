@@ -140,6 +140,14 @@ strio_extend(mrb_state *mrb, mrb_value self, long pos, long len)
 }
 
 static mrb_value
+stringio_rewind(mrb_state *mrb, mrb_value self)
+{
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(0));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@lineno"), mrb_fixnum_value(0));
+  return mrb_fixnum_value(0);
+}
+
+static mrb_value
 stringio_read(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
@@ -434,6 +442,7 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
 {
   struct RClass *stringio = mrb_define_class(mrb, "StringIO", mrb->object_class);
   mrb_define_method(mrb, stringio, "initialize", stringio_initialize, MRB_ARGS_ANY());
+  mrb_define_method(mrb, stringio, "rewind", stringio_rewind, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "read", stringio_read, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "write", stringio_write, MRB_ARGS_REQ(1));
   mrb_define_alias(mrb, stringio, "syswrite", "write");
