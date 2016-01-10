@@ -498,6 +498,9 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_const(mrb, io, "SEEK_CUR", mrb_fixnum_value(SEEK_CUR));
   /* Set I/O position from the end */
   mrb_define_const(mrb, io, "SEEK_END", mrb_fixnum_value(SEEK_END));
+
+  struct RClass *io_error = mrb_define_class(mrb, "IOError", mrb->eStandardError_class);
+  mrb_define_class(mrb, "EOFError", io_error);
 }
 
 void
