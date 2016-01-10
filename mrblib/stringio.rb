@@ -21,7 +21,7 @@ class StringIO
     end
   end
 
-  attr_accessor :string, :pos, :lineno
+  attr_accessor :string
 
   alias_method :tell, :pos
 

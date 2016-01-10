@@ -8,6 +8,8 @@ original is https://github.com/ruby/ruby/blob/trunk/ext/stringio/stringio.c
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/error.h"
+#include "mruby/data.h"
+#include "mruby/class.h"
 
 #define FMODE_READABLE              0x0001
 #define FMODE_WRITABLE              0x0002
@@ -17,6 +19,35 @@ original is https://github.com/ruby/ruby/blob/trunk/ext/stringio/stringio.c
 
 #define stringio_iv_get(name) mrb_iv_get(mrb, self, mrb_intern_lit(mrb, name))
 #define E_IOERROR (mrb_class_get(mrb, "IOError"))
+#define StringIO(self) get_strio(mrb, self)
+
+struct StringIO {
+  mrb_int pos;
+  mrb_int lineno;
+  mrb_int flags;
+  int count;
+};
+
+static const struct mrb_data_type mrb_stringio_type = { "StringIO", mrb_free };
+
+static struct StringIO *
+stringio_alloc(mrb_state *mrb)
+{
+  struct StringIO *ptr = (struct StringIO *)mrb_malloc(mrb, sizeof(struct StringIO));
+  ptr->pos = 0;
+  ptr->lineno = 0;
+  ptr->flags = 0;
+  ptr->count = 1;
+  return ptr;
+}
+
+static struct StringIO *
+get_strio(mrb_state *mrb, mrb_value self)
+{
+  struct StringIO *ptr = mrb_data_get_ptr(mrb, self, &mrb_stringio_type);
+  if (!ptr) mrb_raise(mrb, E_IOERROR, "uninitialized stream");
+  return ptr;
+}
 
 static void
 check_modifiable(mrb_state *mrb, mrb_value self)
@@ -140,102 +171,13 @@ strio_extend(mrb_state *mrb, mrb_value self, long pos, long len)
 }
 
 static mrb_value
-stringio_rewind(mrb_state *mrb, mrb_value self)
-{
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(0));
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@lineno"), mrb_fixnum_value(0));
-  return mrb_fixnum_value(0);
-}
-
-static mrb_value
-stringio_closed_p(mrb_state *mrb, mrb_value self)
-{
-  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
-  return ((flags & FMODE_READWRITE) == 0) ? mrb_true_value() : mrb_false_value();
-}
-
-static mrb_value
-stringio_close(mrb_state *mrb, mrb_value self)
-{
-  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
-  if ((flags & FMODE_READWRITE) == 0)
-    mrb_raise(mrb, E_IOERROR, "closed stream");
-  flags &= ~FMODE_READWRITE;
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_fixnum_value(flags));
-  return mrb_nil_value();
-}
-
-static mrb_value
-stringio_read(mrb_state *mrb, mrb_value self)
-{
-  mrb_int argc;
-  mrb_int clen;
-  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
-  mrb_value rlen = mrb_nil_value();
-  mrb_value rstr = mrb_nil_value();
-  mrb_value string = stringio_iv_get("@string");
-  mrb_value flags = stringio_iv_get("@flags");
-
-  if ((mrb_fixnum(flags) & FMODE_READABLE) != FMODE_READABLE)
-    mrb_raise(mrb, E_IOERROR, "not opened for reading");
-
-  argc = mrb_get_args(mrb, "|oo", &rlen, &rstr);
-  switch (argc) {
-    case 2:
-      if (!mrb_nil_p(rstr)) {
-        mrb_str_modify(mrb, mrb_str_ptr(rstr));
-      }
-      /* fall through */
-    case 1:
-      if (!mrb_nil_p(rlen)) {
-        clen = mrb_fixnum(rlen);
-        if (clen < 0) {
-          mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %S given", rlen);
-        }
-        if (clen > 0 && pos >= RSTRING_LEN(string)) {
-          if (!mrb_nil_p(rstr)) mrb_str_resize(mrb, rstr, 0);
-          return mrb_nil_value();
-        }
-        break;
-      }
-      /* fall through */
-    case 0:
-      clen = RSTRING_LEN(string);
-      if (clen <= pos) {
-        if (mrb_nil_p(rstr)) {
-          rstr = mrb_str_new(mrb, 0, 0);
-        } else {
-          mrb_str_resize(mrb, rstr, 0);
-        }
-        return rstr;
-      } else {
-        clen -= pos;
-      }
-      break;
-    default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (given %S, expected 0..2)", mrb_fixnum_value(argc));
-      break;
-  }
-  if (mrb_nil_p(rstr)) {
-    rstr = strio_substr(mrb, self, pos, clen);
-  } else {
-    long rest = RSTRING_LEN(string) - pos;
-    if (clen > rest) clen = rest;
-    mrb_str_resize(mrb, rstr, clen);
-    memcpy(RSTRING_PTR(rstr), RSTRING_PTR(string) + pos, sizeof(char) * clen);
-  }
-  pos += RSTRING_LEN(rstr);
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(pos));
-  return rstr;
-}
-
-static mrb_value
 stringio_initialize(mrb_state *mrb, mrb_value self)
 {
   mrb_value string = mrb_nil_value();
   mrb_value mode = mrb_nil_value();
   mrb_int flags;
   mrb_int argc;
+  struct StringIO *ptr;
 
   argc = mrb_get_args(mrb, "|SS", &string, &mode);
 
@@ -251,24 +193,149 @@ stringio_initialize(mrb_state *mrb, mrb_value self)
   if (argc == 2 && (flags & FMODE_WRITABLE) && RSTR_FROZEN_P(mrb_str_ptr(string))) {
     mrb_syserr_fail(mrb, EACCES, 0);
   }
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@string"), string);
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(0));
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@lineno"), mrb_fixnum_value(0));
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_fixnum_value(flags));
 
+  ptr = (struct StringIO*)DATA_PTR(self);
+  if (ptr) {
+    mrb_free(mrb, ptr);
+  }
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@string"), string);
+  ptr = stringio_alloc(mrb);
+  ptr->flags = flags;
+  mrb_data_init(self, ptr, &mrb_stringio_type);
   return self;
+}
+
+static mrb_value
+stringio_get_lineno(mrb_state *mrb, mrb_value self)
+{
+  struct StringIO *ptr = StringIO(self);
+  return mrb_fixnum_value(ptr->lineno);
+}
+
+static mrb_value
+stringio_set_lineno(mrb_state *mrb, mrb_value self)
+{
+  struct StringIO *ptr = StringIO(self);
+  mrb_int lineno = 0;
+  mrb_get_args(mrb, "i", &lineno);
+  ptr->lineno = lineno;
+  return mrb_fixnum_value(lineno);
+}
+
+static mrb_value
+stringio_get_pos(mrb_state *mrb, mrb_value self)
+{
+  struct StringIO *ptr = StringIO(self);
+  return mrb_fixnum_value(ptr->pos);
+}
+
+static mrb_value
+stringio_set_pos(mrb_state *mrb, mrb_value self)
+{
+  struct StringIO *ptr = StringIO(self);
+  mrb_int pos = 0;
+  mrb_get_args(mrb, "i", &pos);
+  ptr->pos = pos;
+  return mrb_fixnum_value(pos);
+}
+
+static mrb_value
+stringio_rewind(mrb_state *mrb, mrb_value self)
+{
+  struct StringIO *ptr = StringIO(self);
+  ptr->pos = 0;
+  ptr->lineno = 0;
+  return mrb_fixnum_value(0);
+}
+
+static mrb_value
+stringio_closed_p(mrb_state *mrb, mrb_value self)
+{
+  struct StringIO *ptr = StringIO(self);
+  return ((ptr->flags & FMODE_READWRITE) == 0) ? mrb_true_value() : mrb_false_value();
+}
+
+static mrb_value
+stringio_close(mrb_state *mrb, mrb_value self)
+{
+  struct StringIO *ptr = StringIO(self);
+  if ((ptr->flags & FMODE_READWRITE) == 0)
+    mrb_raise(mrb, E_IOERROR, "closed stream");
+  ptr->flags &= ~FMODE_READWRITE;
+  return mrb_nil_value();
+}
+
+static mrb_value
+stringio_read(mrb_state *mrb, mrb_value self)
+{
+  mrb_int argc;
+  mrb_int clen;
+  struct StringIO *ptr = StringIO(self);
+  mrb_value rlen = mrb_nil_value();
+  mrb_value rstr = mrb_nil_value();
+  mrb_value string = stringio_iv_get("@string");
+
+  if ((ptr->flags & FMODE_READABLE) != FMODE_READABLE)
+    mrb_raise(mrb, E_IOERROR, "not opened for reading");
+
+  argc = mrb_get_args(mrb, "|oo", &rlen, &rstr);
+  switch (argc) {
+    case 2:
+      if (!mrb_nil_p(rstr)) {
+        mrb_str_modify(mrb, mrb_str_ptr(rstr));
+      }
+      /* fall through */
+    case 1:
+      if (!mrb_nil_p(rlen)) {
+        clen = mrb_fixnum(rlen);
+        if (clen < 0) {
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %S given", rlen);
+        }
+        if (clen > 0 && ptr->pos >= RSTRING_LEN(string)) {
+          if (!mrb_nil_p(rstr)) mrb_str_resize(mrb, rstr, 0);
+          return mrb_nil_value();
+        }
+        break;
+      }
+      /* fall through */
+    case 0:
+      clen = RSTRING_LEN(string);
+      if (clen <= ptr->pos) {
+        if (mrb_nil_p(rstr)) {
+          rstr = mrb_str_new(mrb, 0, 0);
+        } else {
+          mrb_str_resize(mrb, rstr, 0);
+        }
+        return rstr;
+      } else {
+        clen -= ptr->pos;
+      }
+      break;
+    default:
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (given %S, expected 0..2)", mrb_fixnum_value(argc));
+      break;
+  }
+  if (mrb_nil_p(rstr)) {
+    rstr = strio_substr(mrb, self, ptr->pos, clen);
+  } else {
+    long rest = RSTRING_LEN(string) - ptr->pos;
+    if (clen > rest) clen = rest;
+    mrb_str_resize(mrb, rstr, clen);
+    memcpy(RSTRING_PTR(rstr), RSTRING_PTR(string) + ptr->pos, sizeof(char) * clen);
+  }
+  ptr->pos += RSTRING_LEN(rstr);
+  return rstr;
 }
 
 static mrb_value
 stringio_write(mrb_state *mrb, mrb_value self)
 {
   mrb_int len, olen;
-  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
-  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
   mrb_value str = mrb_nil_value();
   mrb_value string = stringio_iv_get("@string");
+  struct StringIO *ptr = StringIO(self);
 
-  if ((flags & FMODE_WRITABLE) != FMODE_WRITABLE)
+  if ((ptr->flags & FMODE_WRITABLE) != FMODE_WRITABLE)
     mrb_raise(mrb, E_IOERROR, "not opened for writing");
 
   mrb_get_args(mrb, "o", &str);
@@ -281,48 +348,42 @@ stringio_write(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(0);
   check_modifiable(mrb, self);
   olen = RSTRING_LEN(string);
-  if (flags & FMODE_APPEND) {
-    pos = olen;
+  if (ptr->flags & FMODE_APPEND) {
+    ptr->pos = olen;
   }
-  if (pos == olen) {
+  if (ptr->pos == olen) {
     mrb_str_append(mrb, string, str);
   } else {
-    strio_extend(mrb, self, pos, len);
-    memmove(RSTRING_PTR(string) + pos, RSTRING_PTR(str), len);
+    strio_extend(mrb, self, ptr->pos, len);
+    memmove(RSTRING_PTR(string) + ptr->pos, RSTRING_PTR(str), len);
   }
-  pos += len;
-
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(pos));
+  ptr->pos += len;
   return mrb_fixnum_value(len);
 }
 
 static mrb_value
 stringio_getc(mrb_state *mrb, mrb_value self)
 {
-  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
-  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
   mrb_value string = stringio_iv_get("@string");
   mrb_value ret;
+  struct StringIO *ptr = StringIO(self);
 
-  if ((flags & FMODE_READABLE) == 0)
+  if ((ptr->flags & FMODE_READABLE) == 0)
     mrb_raise(mrb, E_IOERROR, "not opened for reading");
 
-  if (pos >= RSTRING_LEN(string)) {
+  if (ptr->pos >= RSTRING_LEN(string)) {
     return mrb_nil_value();
   }
 
-  ret = mrb_str_new(mrb, RSTRING_PTR(string) + pos, 1);
-  pos += 1;
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(pos));
+  ret = mrb_str_new(mrb, RSTRING_PTR(string) + ptr->pos, 1);
+  ptr->pos += 1;
   return ret;
 }
 
 static mrb_value
 stringio_gets(mrb_state *mrb, mrb_value self)
 {
-  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
-  mrb_int lineno = mrb_fixnum(stringio_iv_get("@lineno"));
-  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
+  struct StringIO *ptr = StringIO(self);
   mrb_value string = stringio_iv_get("@string");
   mrb_int argc;
   mrb_value *argv;
@@ -332,7 +393,7 @@ stringio_gets(mrb_state *mrb, mrb_value self)
   const char *s, *e, *p;
   long n, limit = 0;
 
-  if ((flags & FMODE_READABLE) != FMODE_READABLE)
+  if ((ptr->flags & FMODE_READABLE) != FMODE_READABLE)
     mrb_raise(mrb, E_IOERROR, "not opened for reading");
 
   mrb_get_args(mrb, "*", &argv, &argc);
@@ -361,17 +422,17 @@ stringio_gets(mrb_state *mrb, mrb_value self)
       break;
   }
 
-  if (pos >= (n = RSTRING_LEN(string))) {
+  if (ptr->pos >= (n = RSTRING_LEN(string))) {
     return mrb_nil_value();
   }
   s = RSTRING_PTR(string);
   e = s + RSTRING_LEN(string);
-  s += pos;
+  s += ptr->pos;
   if (limit > 0 && s + limit < e) {
     e = s + limit;
   }
   if (mrb_nil_p(str)) {
-    str = strio_substr(mrb, self, pos, e - s);
+    str = strio_substr(mrb, self, ptr->pos, e - s);
   }
   else if ((n = RSTRING_LEN(str)) == 0) {
     p = s;
@@ -393,7 +454,7 @@ stringio_gets(mrb_state *mrb, mrb_value self)
     if ((p = memchr(s, RSTRING_PTR(str)[0], e - s)) != 0) {
       e = p + 1;
     }
-    str = strio_substr(mrb, self, pos, e - s);
+    str = strio_substr(mrb, self, ptr->pos, e - s);
   }
   else {
     if (n < e - s) {
@@ -413,12 +474,10 @@ stringio_gets(mrb_state *mrb, mrb_value self)
         }
       }
     }
-    str = strio_substr(mrb, self, pos, e - s);
+    str = strio_substr(mrb, self, ptr->pos, e - s);
   }
-  pos = e - RSTRING_PTR(string);
-  lineno++;
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(pos));
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@lineno"), mrb_fixnum_value(lineno));
+  ptr->pos = e - RSTRING_PTR(string);
+  ptr->lineno++;
   return str;
 }
 
@@ -427,19 +486,18 @@ stringio_seek(mrb_state *mrb, mrb_value self)
 {
   mrb_value whence = mrb_nil_value();
   mrb_int offset = 0;
-  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
-  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
   mrb_value string = stringio_iv_get("@string");
+  struct StringIO *ptr = StringIO(self);
 
   mrb_get_args(mrb, "i|o", &offset, &whence);
-  if ((flags & FMODE_READWRITE) == 0) {
+  if ((ptr->flags & FMODE_READWRITE) == 0) {
     mrb_raise(mrb, E_IOERROR, "closed stream");
   }
   switch (mrb_nil_p(whence) ? 0 : mrb_fixnum(whence)) {
     case SEEK_SET:
       break;
     case SEEK_CUR:
-      offset += pos;
+      offset += ptr->pos;
       break;
     case SEEK_END:
       offset += RSTRING_LEN(string);
@@ -450,7 +508,7 @@ stringio_seek(mrb_state *mrb, mrb_value self)
   if (offset < 0) {
     mrb_syserr_fail(mrb, EINVAL, 0);
   }
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pos"), mrb_fixnum_value(offset));
+  ptr->pos = offset;
   return mrb_fixnum_value(0);
 }
 
@@ -468,15 +526,20 @@ static mrb_value
 stringio_eof_p(mrb_state *mrb, mrb_value self)
 {
   mrb_value string = stringio_iv_get("@string");
-  mrb_int pos = mrb_fixnum(stringio_iv_get("@pos"));
-  return (RSTRING_LEN(string) <= pos) ? mrb_true_value() : mrb_false_value();
+  struct StringIO *ptr = StringIO(self);
+  return (RSTRING_LEN(string) <= ptr->pos) ? mrb_true_value() : mrb_false_value();
 }
 
 void
 mrb_mruby_stringio_gem_init(mrb_state* mrb)
 {
   struct RClass *stringio = mrb_define_class(mrb, "StringIO", mrb->object_class);
+  MRB_SET_INSTANCE_TT(stringio, MRB_TT_DATA);
   mrb_define_method(mrb, stringio, "initialize", stringio_initialize, MRB_ARGS_ANY());
+  mrb_define_method(mrb, stringio, "lineno", stringio_get_lineno, MRB_ARGS_NONE());
+  mrb_define_method(mrb, stringio, "lineno=", stringio_set_lineno, MRB_ARGS_NONE());
+  mrb_define_method(mrb, stringio, "pos", stringio_get_pos, MRB_ARGS_NONE());
+  mrb_define_method(mrb, stringio, "pos=", stringio_set_pos, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "rewind", stringio_rewind, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "closed?", stringio_closed_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "close", stringio_close, MRB_ARGS_NONE());

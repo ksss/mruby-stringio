@@ -235,9 +235,9 @@ assert 'StringIO#seek' do
     assert_raise(RuntimeError) { f.seek(-1) }
     f.seek(-1, 2)
     assert_equal("4", f.getc)
-    assert_raise(RuntimeError) { f.seek(IO::SEEK_CUR, 3) }
+    assert_raise(RuntimeError) { f.seek(0, 3) }
     f.close
-    assert_raise(IOError) { f.seek(IO::SEEK_SET) }
+    assert_raise(IOError) { f.seek(1) }
   ensure
     f.close unless f.closed?
   end
