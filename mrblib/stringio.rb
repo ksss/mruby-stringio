@@ -30,12 +30,6 @@ class StringIO
 
   alias_method :tell, :pos
 
-  def close
-    raise IOError, "closed stream" unless !closed?
-    @flags &= ~READWRITE
-    nil
-  end
-
   def size
     if @string.nil?
       raise IOError, "not opened"

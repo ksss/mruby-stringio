@@ -155,6 +155,17 @@ stringio_closed_p(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+stringio_close(mrb_state *mrb, mrb_value self)
+{
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
+  if ((flags & FMODE_READWRITE) == 0)
+    mrb_raise(mrb, E_IOERROR, "closed stream");
+  flags &= ~FMODE_READWRITE;
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_fixnum_value(flags));
+  return mrb_nil_value();
+}
+
+static mrb_value
 stringio_read(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
@@ -451,6 +462,7 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, stringio, "initialize", stringio_initialize, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "rewind", stringio_rewind, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "closed?", stringio_closed_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, stringio, "close", stringio_close, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "read", stringio_read, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "write", stringio_write, MRB_ARGS_REQ(1));
   mrb_define_alias(mrb, stringio, "syswrite", "write");
