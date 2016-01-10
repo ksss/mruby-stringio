@@ -30,14 +30,6 @@ class StringIO
 
   alias_method :tell, :pos
 
-  def size
-    if @string.nil?
-      raise IOError, "not opened"
-    end
-    @string.length
-  end
-  alias length size
-
   def print(*strings)
     strings.each do |string|
       str = string.to_s
