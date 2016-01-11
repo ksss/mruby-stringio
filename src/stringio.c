@@ -40,8 +40,7 @@ stringio_alloc(mrb_state *mrb)
 static void
 stringio_free(mrb_state *mrb, void *p) {
   struct StringIO *ptr = ((struct StringIO *)p);
-  ptr->count--;
-  if (ptr->count == 0) {
+  if (--ptr->count <= 0) {
     mrb_free(mrb, p);
   }
 }
