@@ -24,11 +24,8 @@ original is https://github.com/ruby/ruby/blob/trunk/ext/stringio/stringio.c
 struct StringIO {
   mrb_int pos;
   mrb_int lineno;
-  mrb_int flags;
   int count;
 };
-
-static const struct mrb_data_type mrb_stringio_type = { "StringIO", mrb_free };
 
 static struct StringIO *
 stringio_alloc(mrb_state *mrb)
@@ -36,10 +33,20 @@ stringio_alloc(mrb_state *mrb)
   struct StringIO *ptr = (struct StringIO *)mrb_malloc(mrb, sizeof(struct StringIO));
   ptr->pos = 0;
   ptr->lineno = 0;
-  ptr->flags = 0;
   ptr->count = 1;
   return ptr;
 }
+
+static void
+stringio_free(mrb_state *mrb, void *p) {
+  struct StringIO *ptr = ((struct StringIO *)p);
+  ptr->count--;
+  if (ptr->count == 0) {
+    mrb_free(mrb, p);
+  }
+}
+
+static const struct mrb_data_type mrb_stringio_type = { "StringIO", stringio_free };
 
 static struct StringIO *
 get_strio(mrb_state *mrb, mrb_value self)
@@ -199,10 +206,32 @@ stringio_initialize(mrb_state *mrb, mrb_value self)
     mrb_free(mrb, ptr);
   }
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@string"), string);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_fixnum_value(flags));
   ptr = stringio_alloc(mrb);
-  ptr->flags = flags;
   mrb_data_init(self, ptr, &mrb_stringio_type);
   return self;
+}
+
+static mrb_value
+stringio_initialize_copy(mrb_state *mrb, mrb_value copy)
+{
+  struct StringIO *ptr;
+  mrb_value orig;
+  mrb_value flags;
+
+  mrb_get_args(mrb, "o", &orig);
+  orig = mrb_convert_type(mrb, orig, MRB_TT_DATA, "StringIO", "to_strio");
+  if (&copy == &orig) return copy;
+  ptr = StringIO(orig);
+  if (mrb_data_check_get_ptr(mrb, copy, &mrb_stringio_type)) {
+    stringio_free(mrb, DATA_PTR(copy));
+  }
+  DATA_PTR(copy) = ptr;
+  DATA_TYPE(copy) = &mrb_stringio_type;
+  flags = mrb_iv_get(mrb, orig, mrb_intern_lit(mrb, "@flags"));
+  mrb_iv_set(mrb, copy, mrb_intern_lit(mrb, "@flags"), flags);
+  ++ptr->count;
+  return copy;
 }
 
 static mrb_value
@@ -251,17 +280,24 @@ stringio_rewind(mrb_state *mrb, mrb_value self)
 static mrb_value
 stringio_closed_p(mrb_state *mrb, mrb_value self)
 {
-  struct StringIO *ptr = StringIO(self);
-  return ((ptr->flags & FMODE_READWRITE) == 0) ? mrb_true_value() : mrb_false_value();
+  mrb_int flags;
+
+  StringIO(self);
+  flags = mrb_fixnum(stringio_iv_get("@flags"));
+  return ((flags & FMODE_READWRITE) == 0) ? mrb_true_value() : mrb_false_value();
 }
 
 static mrb_value
 stringio_close(mrb_state *mrb, mrb_value self)
 {
-  struct StringIO *ptr = StringIO(self);
-  if ((ptr->flags & FMODE_READWRITE) == 0)
+  mrb_int flags;
+
+  StringIO(self);
+  flags = mrb_fixnum(stringio_iv_get("@flags"));
+  if ((flags & FMODE_READWRITE) == 0)
     mrb_raise(mrb, E_IOERROR, "closed stream");
-  ptr->flags &= ~FMODE_READWRITE;
+  flags &= ~FMODE_READWRITE;
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_fixnum_value(flags));
   return mrb_nil_value();
 }
 
@@ -274,8 +310,9 @@ stringio_read(mrb_state *mrb, mrb_value self)
   mrb_value rlen = mrb_nil_value();
   mrb_value rstr = mrb_nil_value();
   mrb_value string = stringio_iv_get("@string");
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
 
-  if ((ptr->flags & FMODE_READABLE) != FMODE_READABLE)
+  if ((flags & FMODE_READABLE) != FMODE_READABLE)
     mrb_raise(mrb, E_IOERROR, "not opened for reading");
 
   argc = mrb_get_args(mrb, "|oo", &rlen, &rstr);
@@ -330,12 +367,13 @@ stringio_read(mrb_state *mrb, mrb_value self)
 static mrb_value
 stringio_write(mrb_state *mrb, mrb_value self)
 {
+  struct StringIO *ptr = StringIO(self);
   mrb_int len, olen;
   mrb_value str = mrb_nil_value();
   mrb_value string = stringio_iv_get("@string");
-  struct StringIO *ptr = StringIO(self);
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
 
-  if ((ptr->flags & FMODE_WRITABLE) != FMODE_WRITABLE)
+  if ((flags & FMODE_WRITABLE) != FMODE_WRITABLE)
     mrb_raise(mrb, E_IOERROR, "not opened for writing");
 
   mrb_get_args(mrb, "o", &str);
@@ -348,7 +386,7 @@ stringio_write(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(0);
   check_modifiable(mrb, self);
   olen = RSTRING_LEN(string);
-  if (ptr->flags & FMODE_APPEND) {
+  if (flags & FMODE_APPEND) {
     ptr->pos = olen;
   }
   if (ptr->pos == olen) {
@@ -364,11 +402,12 @@ stringio_write(mrb_state *mrb, mrb_value self)
 static mrb_value
 stringio_getc(mrb_state *mrb, mrb_value self)
 {
+  struct StringIO *ptr = StringIO(self);
   mrb_value string = stringio_iv_get("@string");
   mrb_value ret;
-  struct StringIO *ptr = StringIO(self);
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
 
-  if ((ptr->flags & FMODE_READABLE) == 0)
+  if ((flags & FMODE_READABLE) == 0)
     mrb_raise(mrb, E_IOERROR, "not opened for reading");
 
   if (ptr->pos >= RSTRING_LEN(string)) {
@@ -385,6 +424,7 @@ stringio_gets(mrb_state *mrb, mrb_value self)
 {
   struct StringIO *ptr = StringIO(self);
   mrb_value string = stringio_iv_get("@string");
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
   mrb_int argc;
   mrb_value *argv;
   mrb_value mrb_rs = mrb_str_new_lit(mrb, "\n");
@@ -393,7 +433,7 @@ stringio_gets(mrb_state *mrb, mrb_value self)
   const char *s, *e, *p;
   long n, limit = 0;
 
-  if ((ptr->flags & FMODE_READABLE) != FMODE_READABLE)
+  if ((flags & FMODE_READABLE) != FMODE_READABLE)
     mrb_raise(mrb, E_IOERROR, "not opened for reading");
 
   mrb_get_args(mrb, "*", &argv, &argc);
@@ -484,13 +524,14 @@ stringio_gets(mrb_state *mrb, mrb_value self)
 static mrb_value
 stringio_seek(mrb_state *mrb, mrb_value self)
 {
+  struct StringIO *ptr = StringIO(self);
   mrb_value whence = mrb_nil_value();
   mrb_int offset = 0;
   mrb_value string = stringio_iv_get("@string");
-  struct StringIO *ptr = StringIO(self);
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
 
   mrb_get_args(mrb, "i|o", &offset, &whence);
-  if ((ptr->flags & FMODE_READWRITE) == 0) {
+  if ((flags & FMODE_READWRITE) == 0) {
     mrb_raise(mrb, E_IOERROR, "closed stream");
   }
   switch (mrb_nil_p(whence) ? 0 : mrb_fixnum(whence)) {
@@ -536,6 +577,7 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   struct RClass *stringio = mrb_define_class(mrb, "StringIO", mrb->object_class);
   MRB_SET_INSTANCE_TT(stringio, MRB_TT_DATA);
   mrb_define_method(mrb, stringio, "initialize", stringio_initialize, MRB_ARGS_ANY());
+  mrb_define_method(mrb, stringio, "initialize_copy", stringio_initialize_copy, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "lineno", stringio_get_lineno, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "lineno=", stringio_set_lineno, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "pos", stringio_get_pos, MRB_ARGS_NONE());

@@ -22,6 +22,24 @@ assert 'StringIO#initialize' do
   assert_kind_of StringIO, StringIO.new(o)
 end
 
+assert 'StringIO#dup' do
+  begin
+    f1 = StringIO.new("1234")
+    assert_equal("1", f1.getc)
+    f2 = f1.dup
+    assert_equal("2", f2.getc)
+    assert_equal("3", f1.getc)
+    assert_equal("4", f2.getc)
+    assert_equal(nil, f1.getc)
+    assert_equal(true, f2.eof?)
+    f1.close
+    assert_equal(false, f2.closed?)
+  ensure
+    f1.close unless f1.closed?
+    f2.close unless f2.closed?
+  end
+end
+
 assert 'StringIO#string' do
   s = "foo"
   strio = StringIO.new(s, 'w')
