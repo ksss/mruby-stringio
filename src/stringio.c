@@ -263,7 +263,11 @@ stringio_set_pos(mrb_state *mrb, mrb_value self)
 {
   struct StringIO *ptr = StringIO(self);
   mrb_int pos = 0;
+
   mrb_get_args(mrb, "i", &pos);
+  if (pos < 0) {
+    mrb_syserr_fail(mrb, EINVAL, 0);
+  }
   ptr->pos = pos;
   return mrb_fixnum_value(pos);
 }

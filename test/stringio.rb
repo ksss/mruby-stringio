@@ -40,6 +40,18 @@ assert 'StringIO#dup' do
   end
 end
 
+assert 'StringIO#pos' do
+  f = StringIO.new("foo\nbar\nbaz\n")
+  assert_equal([0, "foo\n"], [f.pos, f.gets])
+  assert_equal([4, "bar\n"], [f.pos, f.gets])
+  assert_raise(RuntimeError) { f.pos = -1 }
+  f.pos = 1
+  assert_equal([1, "oo\n"], [f.pos, f.gets])
+  assert_equal([4, "bar\n"], [f.pos, f.gets])
+  assert_equal([8, "baz\n"], [f.pos, f.gets])
+  assert_equal([12, nil], [f.pos, f.gets])
+end
+
 assert 'StringIO#string' do
   s = "foo"
   strio = StringIO.new(s, 'w')
