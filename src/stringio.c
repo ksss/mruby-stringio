@@ -176,17 +176,27 @@ strio_extend(mrb_state *mrb, mrb_value self, long pos, long len)
   }
 }
 
-static mrb_value
-stringio_initialize(mrb_state *mrb, mrb_value self)
+static void
+strio_init(mrb_state *mrb, mrb_value self, mrb_int argc, mrb_value *argv)
 {
+  mrb_int flags;
+  struct StringIO *ptr;
   mrb_value string = mrb_nil_value();
   mrb_value mode = mrb_nil_value();
-  mrb_int flags;
-  mrb_int argc;
-  struct StringIO *ptr;
-
-  argc = mrb_get_args(mrb, "|SS", &string, &mode);
-
+  switch (argc) {
+    case 0:
+      break;
+    case 1:
+      string = argv[0];
+      break;
+    case 2:
+      string = argv[0];
+      mode = argv[1];
+      break;
+    default:
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (given %S, expected 1..2)", argc);
+      break;
+  }
   if (mrb_nil_p(string)) {
     string = mrb_str_new(mrb, 0, 0);
   }
@@ -202,35 +212,66 @@ stringio_initialize(mrb_state *mrb, mrb_value self)
 
   ptr = (struct StringIO*)DATA_PTR(self);
   if (ptr) {
-    mrb_free(mrb, ptr);
+    /* reopen */
+    mrb_funcall(mrb, mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@string")), "replace", 1, string);
+  } else {
+    /* initialize */
+    ptr = stringio_alloc(mrb);
+    mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@string"), string);
   }
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@string"), string);
+  ptr->lineno = 0;
+  ptr->pos = 0;
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_fixnum_value(flags));
-  ptr = stringio_alloc(mrb);
   mrb_data_init(self, ptr, &mrb_stringio_type);
+}
+
+static mrb_value
+stringio_initialize(mrb_state *mrb, mrb_value self)
+{
+  mrb_value string = mrb_nil_value();
+  mrb_value mode = mrb_nil_value();
+  mrb_int argc;
+  mrb_value argv[2];
+
+  argc = mrb_get_args(mrb, "|SS", &string, &mode);
+  argv[0] = string;
+  argv[1] = mode;
+  strio_init(mrb, self, argc, argv);
   return self;
 }
 
 static mrb_value
-stringio_initialize_copy(mrb_state *mrb, mrb_value copy)
+stringio_copy(mrb_state *mrb, mrb_value copy, mrb_value orig)
 {
   struct StringIO *ptr;
-  mrb_value orig;
   mrb_value flags;
+  mrb_value string;
 
-  mrb_get_args(mrb, "o", &orig);
   orig = mrb_convert_type(mrb, orig, MRB_TT_DATA, "StringIO", "to_strio");
   if (&copy == &orig) return copy;
   ptr = StringIO(orig);
   if (mrb_data_check_get_ptr(mrb, copy, &mrb_stringio_type)) {
     stringio_free(mrb, DATA_PTR(copy));
   }
-  DATA_PTR(copy) = ptr;
-  DATA_TYPE(copy) = &mrb_stringio_type;
+  mrb_data_init(copy, ptr, &mrb_stringio_type);
+
+  string = mrb_iv_get(mrb, orig, mrb_intern_lit(mrb, "@string"));
+  mrb_iv_set(mrb, copy, mrb_intern_lit(mrb, "@string"), string);
+
   flags = mrb_iv_get(mrb, orig, mrb_intern_lit(mrb, "@flags"));
   mrb_iv_set(mrb, copy, mrb_intern_lit(mrb, "@flags"), flags);
+
   ++ptr->count;
   return copy;
+}
+
+static mrb_value
+stringio_initialize_copy(mrb_state *mrb, mrb_value copy)
+{
+  mrb_value orig;
+
+  mrb_get_args(mrb, "o", &orig);
+  return stringio_copy(mrb, copy, orig);
 }
 
 static mrb_value
@@ -574,6 +615,20 @@ stringio_eof_p(mrb_state *mrb, mrb_value self)
   return (RSTRING_LEN(string) <= ptr->pos) ? mrb_true_value() : mrb_false_value();
 }
 
+static mrb_value
+stringio_reopen(mrb_state *mrb, mrb_value self)
+{
+  mrb_int argc;
+  mrb_value *argv;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 1 && !(mrb_type(*argv) == MRB_TT_STRING)) {
+    return stringio_copy(mrb, self, *argv);
+  }
+  strio_init(mrb, self, argc, argv);
+  return self;
+}
+
 void
 mrb_mruby_stringio_gem_init(mrb_state* mrb)
 {
@@ -598,6 +653,7 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_alias(mrb, stringio, "length", "size");
   mrb_define_method(mrb, stringio, "eof?", stringio_eof_p, MRB_ARGS_NONE());
   mrb_define_alias(mrb, stringio, "eof", "eof?");
+  mrb_define_method(mrb, stringio, "reopen", stringio_reopen, MRB_ARGS_NONE());
 
   struct RClass *io = mrb_define_class(mrb, "IO", mrb->object_class);
   /* Set I/O position from the beginning */

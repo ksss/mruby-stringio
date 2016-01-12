@@ -332,3 +332,25 @@ assert 'StringIO#flush' do
   s = StringIO.new
   assert_equal s, s.flush
 end
+
+assert 'StringIO#reopen' do
+  begin
+    f = StringIO.new("foo\nbar\nbaz\n")
+    assert_equal("foo\n", f.gets)
+    f.reopen("qux\nquux\nquuux\n")
+    assert_equal("qux\n", f.gets)
+
+    f2 = StringIO.new("")
+    f2.reopen(f)
+    assert_equal("quux\n", f2.gets)
+  ensure
+    f.close unless f.closed?
+  end
+end
+
+assert 'reopen with dup' do
+  f = StringIO.new("foo\nbar\nbaz\n")
+  assert_equal("foo\n", f.gets)
+  f.dup.reopen("qux\nquux\nquuux\n")
+  assert_equal("qux\n", f.gets)
+end
