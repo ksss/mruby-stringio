@@ -354,3 +354,13 @@ assert 'reopen with dup' do
   f.dup.reopen("qux\nquux\nquuux\n")
   assert_equal("qux\n", f.gets)
 end
+
+assert 'StringIO#readchar' do
+  f = StringIO.new('1234')
+  a = ''
+  assert_equal '1', a.replace(a + f.readchar)
+  assert_equal '12', a.replace(a + f.readchar)
+  assert_equal '123', a.replace(a + f.readchar)
+  assert_equal '1234', a.replace(a + f.readchar)
+  assert_raise(EOFError) { f.readchar }
+end

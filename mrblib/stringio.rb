@@ -84,6 +84,12 @@ class StringIO
     str
   end
 
+  def readchar
+    c = getc
+    raise EOFError, 'end of file reached' if c.nil?
+    c
+  end
+
   def each(*args, &block)
     return to_enum :each unless block
     while line = gets(*args)
