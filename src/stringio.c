@@ -21,6 +21,11 @@ original is https://github.com/ruby/ruby/blob/trunk/ext/stringio/stringio.c
 #define E_IOERROR (mrb_class_get(mrb, "IOError"))
 #define StringIO(self) get_strio(mrb, self)
 
+// For compatibility before https://github.com/mruby/mruby/pull/3340
+#ifndef MRB_FROZEN_P
+#define MRB_FROZEN_P(o) RSTR_FROZEN_P(o)
+#endif
+
 struct StringIO {
   mrb_int pos;
   mrb_int lineno;
@@ -59,7 +64,7 @@ static void
 check_modifiable(mrb_state *mrb, mrb_value self)
 {
   mrb_value string = stringio_iv_get("@string");
-  if (RSTR_FROZEN_P(mrb_str_ptr(string))) {
+  if (MRB_FROZEN_P(mrb_str_ptr(string))) {
     mrb_raise(mrb, E_IOERROR, "not modifiable string");
   }
 }
@@ -201,12 +206,12 @@ strio_init(mrb_state *mrb, mrb_value self, mrb_int argc, mrb_value *argv)
     string = mrb_str_new(mrb, 0, 0);
   }
   if (mrb_nil_p(mode)) {
-    flags = RSTR_FROZEN_P(mrb_str_ptr(string)) ? FMODE_READABLE : FMODE_READWRITE;
+    flags = MRB_FROZEN_P(mrb_str_ptr(string)) ? FMODE_READABLE : FMODE_READWRITE;
   } else {
     flags = modestr_fmode(mrb, RSTRING_PTR(mode));
   }
 
-  if (argc == 2 && (flags & FMODE_WRITABLE) && RSTR_FROZEN_P(mrb_str_ptr(string))) {
+  if (argc == 2 && (flags & FMODE_WRITABLE) && MRB_FROZEN_P(mrb_str_ptr(string))) {
     mrb_syserr_fail(mrb, EACCES, 0);
   }
 
