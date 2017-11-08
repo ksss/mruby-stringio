@@ -208,7 +208,7 @@ strio_init(mrb_state *mrb, mrb_value self, mrb_int argc, mrb_value *argv)
   if (mrb_nil_p(mode)) {
     flags = MRB_FROZEN_P(mrb_str_ptr(string)) ? FMODE_READABLE : FMODE_READWRITE;
   } else {
-    flags = modestr_fmode(mrb, RSTRING_PTR(mode));
+    flags = modestr_fmode(mrb, RSTRING_PTR(mrb_string_type(mrb, mode)));
   }
 
   if (argc == 2 && (flags & FMODE_WRITABLE) && MRB_FROZEN_P(mrb_str_ptr(string))) {
