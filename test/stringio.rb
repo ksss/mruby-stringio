@@ -16,10 +16,10 @@ assert 'StringIO#initialize' do
     nil
   end
   assert_raise(TypeError) { StringIO.new(o) }
-  def o.to_str
-    ''
-  end
-  assert_kind_of StringIO, StringIO.new(o)
+  # def o.to_str
+  #   ''
+  # end
+  # assert_kind_of StringIO, StringIO.new(o)
 end
 
 assert 'StringIO#dup' do
@@ -276,9 +276,9 @@ end
 assert 'gets2' do
   f = StringIO.new("foo\nbar\nbaz\n")
   assert_equal("fo", f.gets(2))
-  o = Object.new
-  def o.to_str; "z"; end
-  assert_equal("o\nbar\nbaz", f.gets(o))
+  # o = Object.new
+  # def o.to_str; "z"; end
+  # assert_equal("o\nbar\nbaz", f.gets(o))
 
   f = StringIO.new("foo\nbar\nbaz\n")
   assert_equal("foo\nbar\nbaz", f.gets("az"))
