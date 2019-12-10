@@ -642,9 +642,9 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, stringio, "initialize", stringio_initialize, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "initialize_copy", stringio_initialize_copy, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "lineno", stringio_get_lineno, MRB_ARGS_NONE());
-  mrb_define_method(mrb, stringio, "lineno=", stringio_set_lineno, MRB_ARGS_NONE());
+  mrb_define_method(mrb, stringio, "lineno=", stringio_set_lineno, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, stringio, "pos", stringio_get_pos, MRB_ARGS_NONE());
-  mrb_define_method(mrb, stringio, "pos=", stringio_set_pos, MRB_ARGS_NONE());
+  mrb_define_method(mrb, stringio, "pos=", stringio_set_pos, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, stringio, "rewind", stringio_rewind, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "closed?", stringio_closed_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, stringio, "close", stringio_close, MRB_ARGS_NONE());
@@ -653,12 +653,12 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_alias(mrb, stringio, "syswrite", "write");
   mrb_define_method(mrb, stringio, "getc", stringio_getc, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "gets", stringio_gets, MRB_ARGS_ANY());
-  mrb_define_method(mrb, stringio, "seek", stringio_seek, MRB_ARGS_NONE());
+  mrb_define_method(mrb, stringio, "seek", stringio_seek, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "size", stringio_size, MRB_ARGS_NONE());
   mrb_define_alias(mrb, stringio, "length", "size");
   mrb_define_method(mrb, stringio, "eof?", stringio_eof_p, MRB_ARGS_NONE());
   mrb_define_alias(mrb, stringio, "eof", "eof?");
-  mrb_define_method(mrb, stringio, "reopen", stringio_reopen, MRB_ARGS_NONE());
+  mrb_define_method(mrb, stringio, "reopen", stringio_reopen, MRB_ARGS_ANY());
 
   struct RClass *io = mrb_define_class(mrb, "IO", mrb->object_class);
   /* Set I/O position from the beginning */
