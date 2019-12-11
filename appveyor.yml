@@ -4,6 +4,7 @@ environment:
   MRUBY_CONFIG: "C:/projects/mruby-stringio/.travis_build_config.rb"
   matrix:
   - Compiler: mingw
+    ruby_version: 26
 
 install:
   - SET PATH=C:\Ruby%ruby_version%\bin;%PATH%
