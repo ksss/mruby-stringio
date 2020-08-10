@@ -206,6 +206,15 @@ assert 'StringIO#getc' do
   assert_equal nil, strio.getc
 end
 
+assert 'StringIO#ungetc' do
+  strio = StringIO.new("abc")
+  assert_raise(IOError) { strio.ungetc '' }
+  assert_raise(IOError) { strio.ungetc 'a' }
+  assert_equal 'a', strio.getc
+  assert_nil strio.ungetc 'a'
+  assert_equal 'a', strio.getc
+end
+
 assert 'StringIO#gets' do
   io = StringIO.new("this>is>an>example")
   assert_equal "this>", io.gets(">")

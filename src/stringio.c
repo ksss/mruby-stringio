@@ -469,6 +469,26 @@ stringio_getc(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+stringio_ungetc(mrb_state *mrb, mrb_value self)
+{
+  struct StringIO *ptr = StringIO(self);
+  mrb_value string = stringio_iv_get("@string");
+  mrb_int in_len;
+  const char* in_data;
+  mrb_get_args(mrb, "s", &in_data, &in_len);
+
+  if (in_len != 1) {
+    mrb_raisef(mrb, E_IOERROR, "ungetc is only support for single byte string. len: %S", mrb_fixnum_value(in_len));
+  }
+  if (ptr->pos <= 0) {
+    mrb_raise(mrb, E_IOERROR, "ungetc not supported in beginning of stream");
+  }
+  ptr->pos -= 1;
+
+  return mrb_nil_value();
+}
+
+static mrb_value
 stringio_gets(mrb_state *mrb, mrb_value self)
 {
   struct StringIO *ptr = StringIO(self);
@@ -653,6 +673,7 @@ mrb_mruby_stringio_gem_init(mrb_state* mrb)
   mrb_define_alias(mrb, stringio, "syswrite", "write");
   mrb_define_method(mrb, stringio, "getc", stringio_getc, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "gets", stringio_gets, MRB_ARGS_ANY());
+  mrb_define_method(mrb, stringio, "ungetc", stringio_ungetc, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, stringio, "seek", stringio_seek, MRB_ARGS_ANY());
   mrb_define_method(mrb, stringio, "size", stringio_size, MRB_ARGS_NONE());
   mrb_define_alias(mrb, stringio, "length", "size");
