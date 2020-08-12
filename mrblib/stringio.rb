@@ -34,6 +34,11 @@ class StringIO
   end
 
   def puts(*strings)
+    if strings.length == 0
+      write DEFAULT_RS
+      return nil
+    end
+
     strings.each do |string|
       str = string.to_s
       write str

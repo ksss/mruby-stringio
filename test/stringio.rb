@@ -364,3 +364,20 @@ assert 'StringIO#readchar' do
   assert_equal '1234', a.replace(a + f.readchar)
   assert_raise(EOFError) { f.readchar }
 end
+
+assert 'StringIO#puts' do
+  f = StringIO.new
+  f.puts(1, 2, 3, 4)
+  assert_equal("1\n2\n3\n4\n", f.string)
+
+  f = StringIO.new
+  f.puts('')
+  assert_equal("\n", f.string)
+
+  f = StringIO.new
+  f.puts
+  assert_equal("\n", f.string)
+
+  f = StringIO.new('', 'r')
+  assert_raise(IOError) { f.puts }
+end
