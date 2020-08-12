@@ -494,6 +494,7 @@ stringio_ungetc(mrb_state *mrb, mrb_value self)
   }
   ptr->pos -= 1;
 
+  mrb_assert(RSTRING_PTR(string)[ptr->pos] == *in_data);
   return mrb_nil_value();
 }
 
