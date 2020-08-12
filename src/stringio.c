@@ -477,11 +477,20 @@ stringio_ungetc(mrb_state *mrb, mrb_value self)
   const char* in_data;
   mrb_get_args(mrb, "s", &in_data, &in_len);
 
+  mrb_int flags = mrb_fixnum(stringio_iv_get("@flags"));
+  if ((flags & FMODE_READABLE) == 0) {
+    mrb_raise(mrb, E_IOERROR, "not opened for reading");
+  }
+
+  if (in_len == 0) {
+    return mrb_nil_value();
+  }
+
   if (in_len != 1) {
-    mrb_raisef(mrb, E_IOERROR, "ungetc is only support for single byte string. len: %S", mrb_fixnum_value(in_len));
+    mrb_raisef(mrb, E_IOERROR, "mruby-ext: ungetc is only supported for single byte string. len: %S", mrb_fixnum_value(in_len));
   }
   if (ptr->pos <= 0) {
-    mrb_raise(mrb, E_IOERROR, "ungetc not supported in beginning of stream");
+    mrb_raise(mrb, E_IOERROR, "mruby-ext: ungetc not supported in beginning of stream");
   }
   ptr->pos -= 1;
 

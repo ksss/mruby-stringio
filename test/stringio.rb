@@ -208,11 +208,15 @@ end
 
 assert 'StringIO#ungetc' do
   strio = StringIO.new("abc")
-  assert_raise(IOError) { strio.ungetc '' }
+  strio.ungetc ''
+  assert_equal 'abc', strio.string
   assert_raise(IOError) { strio.ungetc 'a' }
   assert_equal 'a', strio.getc
   assert_nil strio.ungetc 'a'
   assert_equal 'a', strio.getc
+
+  strio = StringIO.new("abc", 'w')
+  assert_raise(IOError) { strio.ungetc 'a' }
 end
 
 assert 'StringIO#gets' do
