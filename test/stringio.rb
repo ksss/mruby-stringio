@@ -381,3 +381,38 @@ assert 'StringIO#puts' do
   f = StringIO.new('', 'r')
   assert_raise(IOError) { f.puts }
 end
+
+assert 'StringIO#ungetc' do
+  s = "1234"
+  f = StringIO.new(s, "r")
+  f.ungetc("x")
+  assert_equal("x", f.getc)
+  assert_equal("1", f.getc)
+
+  s = "1234"
+  f = StringIO.new(s, "r")
+  assert_equal("1", f.getc)
+  f.ungetc("y")
+  assert_equal("y", f.getc)
+  assert_equal("2", f.getc)
+
+  s = "12"
+  f = StringIO.new(s)
+  f.pos = 1
+  f.ungetc('aaa')
+  assert_equal("aaa2", f.string)
+
+  s = "1"
+  f = StringIO.new(s)
+  f.pos = 1
+  assert_raise(RuntimeError) { f.ungetc('aaa') }
+
+  s = StringIO.new("".freeze)
+  assert_raise(IOError) {s.ungetc("x")}
+
+  s = StringIO.new("", "w")
+  assert_raise(IOError) {s.ungetc("x")}
+
+  s = StringIO.new("").freeze
+  assert_raise(FrozenError) {s.ungetc("x")}
+end
