@@ -95,6 +95,21 @@ class StringIO
     c
   end
 
+  def ungetc(str)
+    raise FrozenError, "can't modify frozen String" if frozen?
+    raise IOError, "not modifiable string" unless !string.frozen?
+    raise IOError, "not opened for reading" unless (@flags & READABLE) == READABLE
+    raise TypeError, "expect String, got #{str.class}" unless str.is_a?(String)
+    raise "Unsupported: Please send PR" unless pos < string.length
+    s = pos - str.length
+    s = 0 if s < 0
+    len = pos
+    len = str.length if str.length < pos
+    self.pos = s
+    string[s, len] = str
+    nil
+  end
+
   def each(*args, &block)
     return to_enum :each unless block
     while line = gets(*args)
