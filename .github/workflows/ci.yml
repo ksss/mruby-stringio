@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  ubuntu-1804-gcc:
+  ubuntu-latest-gcc:
     strategy:
       matrix:
         mruby-version:
@@ -20,10 +20,10 @@ jobs:
             disable-presym: 'true'
           - mruby-version: 3.0.0
             disable-presym: 'false'
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: ruby/setup-ruby@v1.66.0
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '2.7'
       - name: Build and test
@@ -34,7 +34,7 @@ jobs:
           DISABLE_PRESYM: ${{ matrix.disable-presym }}
         run: rake test
 
-  ubuntu-1804-clang:
+  ubuntu-latest-clang:
     strategy:
       matrix:
         mruby-version:
@@ -45,10 +45,10 @@ jobs:
             disable-presym: 'true'
           - mruby-version: 3.0.0
             disable-presym: 'false'
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: ruby/setup-ruby@v1.66.0
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '2.7'
       - name: Build and test
@@ -59,7 +59,7 @@ jobs:
           DISABLE_PRESYM: ${{ matrix.disable-presym }}
         run: rake test
 
-  ubuntu-1804-mingw:
+  ubuntu-latest-mingw:
     strategy:
       matrix:
         mruby-version:
@@ -70,10 +70,10 @@ jobs:
             disable-presym: 'true'
           - mruby-version: 3.0.0
             disable-presym: 'false'
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: ruby/setup-ruby@v1.66.0
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '2.7'
       - name: apt
@@ -99,7 +99,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: ruby/setup-ruby@v1.66.0
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '2.7'
       - name: Build and test
