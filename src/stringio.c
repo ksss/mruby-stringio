@@ -10,6 +10,7 @@ original is https://github.com/ruby/ruby/blob/trunk/ext/stringio/stringio.c
 #include "mruby/error.h"
 #include "mruby/data.h"
 #include "mruby/class.h"
+#include "mruby/object.h"
 
 #define FMODE_READABLE              0x0001
 #define FMODE_WRITABLE              0x0002
