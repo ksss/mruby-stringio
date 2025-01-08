@@ -23,7 +23,11 @@ original is https://github.com/ruby/ruby/blob/trunk/ext/stringio/stringio.c
 
 // For compatibility before https://github.com/mruby/mruby/pull/3340
 #ifndef MRB_FROZEN_P
+#ifdef mrb_frozen_p
+#define MRB_FROZEN_P(o) mrb_frozen_p(o)
+#else
 #define MRB_FROZEN_P(o) RSTR_FROZEN_P(o)
+#endif
 #endif
 
 struct StringIO {
